@@ -1,6 +1,6 @@
 import subprocess
 from dotenv import load_dotenv
-from generate_script import Script, generate_script
+from backend.generate_script import Script, generate_script
 from config.paths import MANIM_KNOWLEDGE_PATH, MANIM_PROMPT_PATH, VIDEO_OUTPUT_DIR, CODE_OUTPUT_DIR
 from config.llm import LLMClient
 from pathlib import Path

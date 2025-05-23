@@ -9,7 +9,7 @@ CONDA_BASE="$(conda info --base)"
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
 # 2) Create or update your env
-ENV_NAME="tutor-ai-l"
+ENV_NAME="MageEnv"
 if conda env list | grep -qE "^${ENV_NAME}[[:space:]]"; then
   echo "🔄  Updating existing '$ENV_NAME' environment…"
   conda env update --name "$ENV_NAME" --file environment.yml --prune

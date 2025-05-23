@@ -1,3 +1,0 @@
-file '/Users/dariuskashani/CodeProjects/ai_tutor/output/videos/scene_0.mp4'
-file '/Users/dariuskashani/CodeProjects/ai_tutor/output/videos/scene_1.mp4'
-file '/Users/dariuskashani/CodeProjects/ai_tutor/output/videos/scene_2.mp4'

@@ -1,12 +1,14 @@
-name: tutor-ai-l
+name: MageEnv        # or tutor-ai-l, whichever you chose
 channels:
   - conda-forge
+  - defaults
+
 dependencies:
-  - python=3.11          # or whatever minor version you prefer
-  - manim                # the Manim library itself
-  - texlive-core         # a minimal TeX Live distribution
-  - dvisvgm              # DVI → SVG converter used by Manim
-  - dvipng               # (optional) DVI → PNG converter
-  - pip                   # so you can still pip-install anything else
+  - python=3.10      # pin a compatible Python
+  - manim            # gets installed by Conda
+  - pip              # so we can pull pure‐Python libs
+
   - pip:
-      - your-other-pip-deps  # if you have extra pip packages, list them here
+    - python-dotenv
+    - openai
+    - elevenlabs
