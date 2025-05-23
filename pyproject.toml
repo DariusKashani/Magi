@@ -1,0 +1,18 @@
+[project]
+name = "tutor_ai"
+version = "0.1.0"
+description = "LLM-powered educational script and animation generator"
+dependencies = [
+  "openai",
+  "python-dotenv"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+generate-script = "backend.generate_script:main"
+generate-scenes = "backend.generate_scenes:main"

@@ -1,0 +1,25 @@
+[00:00] Welcome to our exploration of Euler's Formula, a fundamental concept in mathematics which bridges the realms of algebra, trigonometry, and complex analysis. 
+
+[SCENE]
+[00:05] Let's begin with a title screen displaying "Euler Formula" in fiery orange against a black backdrop. At 0:08, fade in a subtitle stating "Unifying Algebra, Trigonometry, and Complex Analysis". At 0:11, transition to a split-screen, with left side showing a coordinate plane and the right side showing a moving sine wave. At 0:14, plot a point on the coordinate plane representing a complex number and simultaneously show the corresponding point on the sine wave. At 0:20, animate the formula "e to the power of i times theta equals cos theta plus i times sin theta" with matching color animations. At 0:25, explain that 'i' is the imaginary unit, 'theta' is the angle in radians, 'e' is Euler's number, 'cos theta' is the cosine of the angle, and 'sin theta' is the sine of the angle.
+[/SCENE]
+
+[00:30] The beauty of Euler's Formula lies in its simplicity and elegance, encapsulating the profound relationship between exponential functions and trigonometry.
+
+[SCENE]
+[00:35] Now, let's see Euler's Formula in action. At 0:38, display a 3D animation of a rotating sphere. At 0:42, label the rotations in terms of 'theta'. At 0:45, show how Euler's Formula can be used to describe the rotations in the complex plane. At 0:50, animate the formula "e to the power of i times theta" and associate it with the rotations. At 0:55, illustrate how changing 'theta' affects the rotations, beautifully demonstrating how Euler's Formula bridges geometry and algebra.
+[/SCENE]
+
+[01:00] But Euler's Formula isn't just an abstract mathematical concept. It has real-world implications as well.
+
+[SCENE]
+[01:05] To illustrate a real-world application, at 1:08, display an animation of a radio wave. At 1:11, explain that Euler's Formula is used to describe the wave's oscillation. At 1:15, animate the formula "e to the power of i times omega t" and associate it with the wave's oscillation. At 1:20, illustrate how changing 'omega', the wave's frequency, affects the wave's oscillation. At 1:25, transition to a montage of other applications in electrical engineering, quantum physics, and signal processing, showing how Euler's Formula underpins so many aspects of our modern world.
+[/SCENE]
+
+[01:30] Euler's Formula, with its beautiful balance and harmony, truly is a gem in the mathematical world. 
+
+[02:00] It not only provides a powerful tool for mathematicians, engineers, and physicists, but also offers an inspiring example of the unity and coherence inherent in the universe of mathematics.
+
+[02:30] In closing, remember that Euler's Formula is more than just an equation. It's a symbol of the intricate and elegant dance between different branches of mathematics, and a testament to our ability to uncover the hidden patterns of the universe.
+
+[02:40] Thanks for joining us on this journey through Euler's Formula. We hope you've gained a deeper appreciation for the beauty and power of mathematics.

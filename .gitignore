@@ -1,0 +1,45 @@
+# Python virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+
+# Generated files
+*.mp4
+narration.mp3
+script_timing.json
+scene_*.py
+generated_animation.py
+temp.py
+
+# Manim generated files
+media/
+manimlib/
+
+# Temporary files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

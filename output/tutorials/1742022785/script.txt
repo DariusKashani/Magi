@@ -1,0 +1,19 @@
+[00:00] Welcome to our mathematical journey today, where we delve into the interesting world of triangle areas. 
+
+[SCENE]
+[00:05] Begin with a title screen displaying "Triangle Area" in bright yellow serif font against a background representing a chalkboard. At 0:08, fade in the subtitle "Understanding the Calculations." At 0:12, switch to a coordinate plane with axes from minus ten to ten. At 0:15, draw an equilateral triangle in the first quadrant with vertices at (0,0), (8,0), and (4,7) using thick, orange lines. At 0:20, label each side as 'a'. At 0:25, animate a line bisecting the triangle from the top vertex to the middle of the base and label it as 'h'. At 0:30, display the formula "one-half base times height" with matching color animations. At 0:35, show the calculation "one-half times eight times seven equals twenty-eight" with arrows linking the terms. At 0:40, emphasize the importance of this formula in understanding the area of a triangle.
+[/SCENE]
+
+[01:00] Let's take a look at another interesting triangle, the right-angled triangle. The area of a right-angled triangle can also be calculated using the formula one-half base times height. 
+
+[SCENE]
+[01:05] Draw a right-angled triangle with vertices at (0,0), (0,6), and (8,0) using thick, blue lines. At 1:10, label the base as 'b' and the height as 'h'. At 1:15, display the formula "one-half base times height" and animate the calculation "one-half times six times eight equals twenty-four". At 1:25, emphasize that the base and height must be the sides forming the right angle. 
+[/SCENE]
+
+[01:50] The concept of the triangle area has several real-world applications. 
+
+[SCENE]
+[01:55] Illustrate a real-world application of the concept. At 2:00, show a pyramid with a triangular base. Label the base as 'b' and the height as 'h'. At 2:05, overlay the phrase "one-half base times height". At 2:10, substitute values to demonstrate calculating the area. At 2:15, animate the pyramid rotating to show different perspectives. At 2:20, display a montage of other applications in architecture, design, and land surveying where triangle areas are important. At 2:30, emphasize that understanding the area of a triangle is not just an abstract concept but a practical tool used in various fields. 
+[/SCENE]
+
+[02:40] In summary, the area of a triangle, whether it is equilateral or right-angled, is calculated using the formula one-half base times height. This understanding goes beyond the classroom, reaching into real-world applications. Remember, a firm grasp of this concept can be a powerful tool in your mathematical toolkit. Stay curious, keep learning, and until next time, happy math adventures!

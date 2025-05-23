@@ -1,0 +1,19 @@
+[0:00] Welcome to our exciting minute of math, today we are exploring simple triangles!
+
+[SCENE]
+[0:03] Our opening scene begins with the words "Simple Triangles" majestically appearing on screen in a bold, orange font. At [0:05], an equilateral triangle materializes, its sides all the same length. Let's label each side as "a". At [0:10], show the formula "a equals a equals a" to demonstrate all sides are equal. At [0:15], a line splits the triangle in half, forming two right-angled triangles. At [0:20], we reveal the height "h" and base "a/2", showing the formula "h equals square root of a squared minus (a/2) squared". At [0:25], animate a checkmark confirming the equation.
+[/SCENE]
+
+[0:30] Now, let's talk about isosceles triangles, where two sides are equal.
+
+[SCENE]
+[0:32] The scene shifts to a new triangle, this time it's an isosceles triangle. At [0:34], we label two sides as "b" and the base as "a". At [0:37], we split the triangle in half again, showing two right-angled triangles. At [0:40], we reveal the height "h" and half base "a/2", showing the formula "h equals square root of b squared minus (a/2) squared". At [0:45], animate a checkmark confirming the equation.
+[/SCENE]
+
+[0:50] Lastly, let's see these triangles in action!
+
+[SCENE]
+[0:52] Our final scene displays a pyramid, a real-world example of equilateral triangles. At [0:55], we see a tent, demonstrating isosceles triangles. At [0:58], the phrases "equal sides for stability" and "two sides equal for balance" overlay the pyramid and tent respectively. At [0:60], the words "Triangles in Real Life" flash, concluding our minute of math.
+[/SCENE]
+
+[1:00] And that, my friends, is a brief introduction to simple triangles! Thanks for joining us, and remember - triangles make the world go round!

@@ -1,0 +1,151 @@
+# Manim Functions and Usage Guide
+
+Manim is a Python library for creating mathematical animations, developed by Grant Sanderson (3Blue1Brown).
+
+## Core Components
+
+### Mobjects (Mathematical Objects)
+
+Base class: `Mobject`. Important methods:
+- `add(*mobjects)`: Adds sub-mobjects
+- `remove(*mobjects)`: Removes sub-mobjects
+- `set_color(color)`: Sets color (e.g., "RED", "#FF0000", or RGB tuple)
+- `set_opacity(opacity)`: Sets transparency (0-1)
+- `move_to(point)`: Moves to specific coordinates
+- `shift(vector)`: Moves by a vector
+- `rotate(angle, axis=UP, about_point=ORIGIN)`: Rotates
+- `scale(factor, about_point=ORIGIN)`: Scales
+
+#### Shapes
+- `Circle(radius=1, color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `Square(side_length=1, color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `Rectangle(width=2, height=1, color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `Line(start, end, color=WHITE, stroke_width=2)`
+- `Triangle(color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `Polygon(*vertices, color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `RegularPolygon(n=6, color=WHITE, fill_color=None, fill_opacity=0, stroke_width=2)`
+- `Arc(radius=1, start_angle=0, angle=TAU/4, color=WHITE, stroke_width=2)`
+- `Dot(point=ORIGIN, radius=0.1, color=WHITE, fill_opacity=1, stroke_width=0)`
+
+#### Text
+- `Text(text, font_size=24, color=WHITE, font="Arial")`
+- `MathTex(*tex_strings, color=WHITE, font_size=24)`: LaTeX math expressions
+- `Tex(*tex_strings, color=WHITE, font_size=24)`: LaTeX text
+
+#### Vector Objects
+- `Arrow(start, end, color=WHITE, stroke_width=2, tip_length=0.3, tip_width=0.2)`
+- `Vector(direction, color=WHITE, stroke_width=2, tip_length=0.3, tip_width=0.2)`
+- `DoubleArrow(start, end, color=WHITE, stroke_width=2, tip_length=0.3, tip_width=0.2)`
+
+#### Graphing
+- `Axes(x_range=[-10, 10, 1], y_range=[-10, 10, 1], axis_config={"include_tip": True})`
+- `NumberPlane(x_range=[-10, 10, 1], y_range=[-10, 10, 1], background_line_style={"stroke_color": BLUE_D, "stroke_width": 2})`
+- `FunctionGraph(function, x_range=[-10, 10, 0.01], color=WHITE)`
+- `ParametricFunction(function, t_range=[0, 1, 0.01], color=WHITE)`
+
+#### Images
+- `ImageMobject(filename, height=2, opacity=1)`
+
+#### SVG
+- `SVGMobject(file_name, color=WHITE, height=2, width=None, opacity=1)`
+
+### Scenes
+
+Base class: `Scene`. Important methods:
+- `add(*mobjects)`: Adds mobjects to the scene
+- `remove(*mobjects)`: Removes mobjects from the scene
+- `play(*animations, run_time=1)`: Plays animations
+- `wait(duration=1)`: Pauses
+- `set_camera_orientation(phi=0, theta=0, gamma=0, focal_distance=10, zoom=1)`: Sets camera view
+
+Special scene types:
+- `MovingCameraScene`: Allows camera movements
+- `ThreeDScene`: For 3D animations
+- `VectorScene`: Special functions for vector calculus
+- `GraphScene`: For plotting graphs
+
+### Animations
+
+Base class: `Animation`. Common parameters:
+- `run_time`: Duration in seconds
+- `rate_func`: Timing function (e.g., `linear`, `smooth`)
+- `lag_ratio`: For staggered animations
+
+#### Transform Animations
+- `Transform(mobject1, mobject2, run_time=1, lag_ratio=0, path_arc=0)`
+- `ReplacementTransform(mobject1, mobject2, run_time=1, lag_ratio=0, path_arc=0)`
+- `TransformFromCopy(mobject1, mobject2, run_time=1, lag_ratio=0, path_arc=0)`
+
+#### Create/Destroy
+- `Create(mobject, run_time=1, lag_ratio=0)`: Gradually draws the mobject
+- `Uncreate(mobject, run_time=1, lag_ratio=0)`: Gradually erases
+- `FadeIn(mobject, shift=ORIGIN, scale=1, run_time=1)`
+- `FadeOut(mobject, shift=ORIGIN, scale=1, run_time=1)`
+- `DrawBorderThenFill(mobject, run_time=1, lag_ratio=0)`
+
+#### Movement
+- `ApplyMethod(mobject.method, *args, run_time=1, lag_ratio=0)`: Animates any method
+- `Indicate(mobject, color=YELLOW, scale_factor=1.2, run_time=1)`
+- `Flash(point, color=YELLOW, line_length=0.3, num_lines=12, run_time=1)`
+- `GrowFromCenter(mobject, point=ORIGIN, run_time=1)`
+- `GrowFromPoint(mobject, point=ORIGIN, run_time=1)`
+- `SpinInFromNothing(mobject, run_time=1)`
+
+#### Method-based Animation
+Using `.animate` for any method:
+```python
+self.play(mobject.animate.shift(RIGHT).scale(2))
+```
+
+### Constants and Utilities
+
+#### Directions
+- `ORIGIN`: (0, 0, 0)
+- `UP`, `DOWN`, `LEFT`, `RIGHT`: Unit vectors
+- `UR`, `UL`, `DR`, `DL`: Diagonal unit vectors
+- `IN`, `OUT`: 3D directions
+
+#### Colors
+- Basic: `WHITE`, `BLACK`, `RED`, `GREEN`, `BLUE`, `YELLOW`
+- Shades: `RED_A`, `RED_B`, `RED_C`, `RED_D`, `RED_E` (lightest to darkest)
+- CSS-named colors also available
+
+#### Math Constants
+- `PI`, `TAU` (2π), `DEGREES`, `RADIANS`
+
+#### Utility Functions
+- `get_coords(mobject)`: Gets coordinates
+- `interpolate(start, end, alpha)`: Linear interpolation
+- `smooth(t)`: Smooth timing function
+
+## Best Practices for Animations
+
+1. Group related mobjects (use `Group()` or `VGroup()`)
+2. Use `.animate` for chaining transformations
+3. Use `wait()` to give viewers time to process animations
+4. Keep run_time consistent for visual harmony
+5. Organize complex scenes into multiple functions
+6. Use appropriate rate functions for natural movement
+7. Avoid too many objects/animations at once
+
+## Common Pitfalls & Solutions
+
+- Overlapping objects: Use `arrange()` or explicit positioning
+- Text too small: Adjust `font_size` or `scale()`
+- Animations too fast: Increase `run_time`
+- Objects invisible: Check color against background or `set_stroke()`
+- Staggered animations not working: Adjust `lag_ratio`
+
+## Using Camera Effectively
+
+- Use `self.camera.frame.animate` in MovingCameraScene
+- Zoom: `self.camera.frame.animate.scale(factor)`
+- Pan: `self.camera.frame.animate.move_to(point)`
+- Rotate: `self.camera.frame.animate.rotate(angle)`
+
+## Advanced Techniques
+
+- Custom animations by subclassing `Animation`
+- Value trackers for dynamic parameters
+- Interactive graphs with `always_redraw()`
+- Updaters to link mobjects' properties

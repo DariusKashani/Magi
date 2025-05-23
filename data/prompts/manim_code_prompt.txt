@@ -1,0 +1,143 @@
+You are a Manim expert.
+
+Given a structured scene description for a math animation, your task is to:
+
+1. **Plan**: Think through the animation step-by-step based on the provided description.
+   - What objects or text need to be created?
+   - How should they be arranged and animated?
+   - What durations are given for each step?
+
+2. **Code**: After planning, write complete and executable Python code using the Manim library to implement the animation.
+
+**Instructions**:
+- Use standard Manim constructs (`Scene`, `Tex`, `MathTex`, `Square`, `Arrow`, `Line`, `Polygon`, etc.).
+- Use `.wait(seconds)` for timing transitions and static scenes.
+- ⚠️ Use `Tex(...)` for plain text (e.g. `"Leg"`, `"Base"`), and **only** `MathTex(...)` for valid LaTeX math (e.g. `"a^2 + b^2 = c^2"`).
+
+**Formatting Rules**:
+- Output **only one code block**.
+- Start and end the code block with triple single quotes: `'''`
+- Do not include any explanation, planning, or commentary outside the code block.
+
+**Six Example Outputs**:
+
+Example 1 (single static state):
+'''
+from manim import *
+
+class SimpleTriangle(Scene):
+    def construct(self):
+        triangle = Triangle()
+        self.play(Create(triangle))
+        self.wait(2)
+'''
+
+Example 2 (static + one animation):
+'''
+from manim import *
+
+class HighlightEquation(Scene):
+    def construct(self):
+        eq = MathTex("E=mc^2")
+        self.add(eq)
+        self.wait(1)
+        self.play(eq.animate.set_color(YELLOW), run_time=2)
+        self.wait(1)
+'''
+
+Example 3 (static + two animations):
+'''
+from manim import *
+
+class RotateSquare(Scene):
+    def construct(self):
+        square = Square()
+        self.add(square)
+        self.wait(1)
+        # Animation 1: rotate
+        self.play(Rotate(square, PI/4), run_time=2)
+        self.wait(1)
+        # Animation 2: scale up
+        self.play(square.animate.scale(1.5), run_time=2)
+        self.wait(1)
+'''
+
+Example 4 (static + three animations):
+'''
+from manim import *
+
+class NumberLineExample(Scene):
+    def construct(self):
+        line = NumberLine(x_range=[0, 5, 1])
+        dot = Dot(color=RED).move_to(line.n2p(0))
+        self.add(line, dot)
+        self.wait(1)
+        # Animation 1: move to 2
+        self.play(dot.animate.move_to(line.n2p(2)), run_time=2)
+        self.wait(0.5)
+        # Animation 2: move to 4
+        self.play(dot.animate.move_to(line.n2p(4)), run_time=2)
+        self.wait(0.5)
+        # Animation 3: change color
+        self.play(dot.animate.set_color(BLUE), run_time=1)
+        self.wait(1)
+'''
+
+Example 5 (static + four animations):
+'''
+from manim import *
+
+class ParabolaPlot(Scene):
+    def construct(self):
+        axes = Axes(x_range=[-3,3], y_range=[0,9])
+        graph = axes.plot(lambda x: x**2)
+        label = MathTex("y=x^2").next_to(graph, UR)
+        self.add(axes)
+        self.wait(1)
+        # Animation 1: draw graph
+        self.play(Create(graph), run_time=2)
+        self.wait(1)
+        # Animation 2: write label
+        self.play(Write(label), run_time=1)
+        self.wait(1)
+        # Animation 3: highlight vertex
+        vertex = Dot(axes.c2p(0,0), color=YELLOW)
+        self.play(FadeIn(vertex), run_time=1)
+        self.wait(1)
+        # Animation 4: frame shift
+        self.play(axes.animate.shift(LEFT*2), run_time=2)
+        self.wait(1)
+'''
+
+Example 6 (combined static + multiple animations):
+'''
+from manim import *
+
+class CombinedExample(Scene):
+    def construct(self):
+        # Static state: draw circle and label
+        circle = Circle(radius=1)
+        label = Tex("Circle").next_to(circle, DOWN)
+        self.add(circle, label)
+        self.wait(1)
+        # Animation 1: fill circle
+        self.play(circle.animate.set_fill(BLUE, opacity=0.5), run_time=1)
+        self.wait(0.5)
+        # Animation 2: transform to square
+        square = Square(side_length=2)
+        self.play(Transform(circle, square), run_time=2)
+        self.wait(0.5)
+        # Animation 3: change label
+        new_label = Tex("Square").move_to(label)
+        self.play(Transform(label, new_label), run_time=1)
+        self.wait(1)
+        # Animation 4: rotate square
+        self.play(Rotate(square, PI/2), run_time=2)
+        self.wait(1)
+'''
+
+*** END OF EXAMPLES ***
+
+Now write the code for the following scene:
+```text
+{scene_description_here}

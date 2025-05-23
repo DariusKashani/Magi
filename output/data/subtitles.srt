@@ -1,0 +1,111 @@
+1
+00:00:00,000 --> 00:00:02,900
+Welcome to our exciting minute of math, today we are exploring simple triangles!
+
+2
+00:00:03,000 --> 00:00:07,363
+Our opening scene begins with the words "Simple Triangles" majestically
+
+3
+00:00:07,363 --> 00:00:11,727
+appearing on screen in a bold, orange font.
+
+4
+00:00:11,727 --> 00:00:16,090
+At [0:05], an equilateral triangle materializes, its sides all the same
+
+5
+00:00:16,090 --> 00:00:20,454
+length. Let's label each side as "a".
+
+6
+00:00:20,454 --> 00:00:24,818
+At [0:10], show the formula "a equals a equals a" to demonstrate
+
+7
+00:00:24,818 --> 00:00:29,181
+all sides are equal. At [0:15], a line splits the triangle in
+
+8
+00:00:29,181 --> 00:00:33,545
+half, forming two right-angled triangles.
+
+9
+00:00:33,545 --> 00:00:37,909
+At [0:20], we reveal the height "h" and base "a/2", showing the
+
+10
+00:00:37,909 --> 00:00:42,272
+formula "h equals square root of a squared minus (a/2) squared".
+
+11
+00:00:42,272 --> 00:00:46,636
+At [0:25], animate a checkmark confirming the equation.
+
+3
+00:00:30,000 --> 00:00:31,900
+Now, let's talk about isosceles triangles, where two sides are equal.
+
+4
+00:00:32,000 --> 00:00:37,378
+The scene shifts to a new triangle, this time it's an isosceles
+
+5
+00:00:37,378 --> 00:00:42,757
+triangle. At [0:34], we label two sides as "b" and the base
+
+6
+00:00:42,757 --> 00:00:48,136
+as "a". At [0:37], we split the triangle in half again, showing
+
+7
+00:00:48,136 --> 00:00:53,515
+two right-angled triangles. At [0:40], we reveal the height "h" and half
+
+8
+00:00:53,515 --> 00:00:58,893
+base "a/2", showing the formula "h equals square root of b squared
+
+9
+00:00:58,893 --> 00:01:04,272
+minus (a/2) squared". At [0:45], animate a checkmark confirming the equation.
+
+5
+00:00:50,000 --> 00:00:51,900
+Lastly, let's see these triangles in action!
+
+6
+00:00:52,000 --> 00:00:56,166
+Our final scene displays a pyramid, a real-world example of equilateral
+
+7
+00:00:56,166 --> 00:01:00,333
+triangles. At [0:55], we see a tent, demonstrating isosceles triangles.
+
+8
+00:01:00,333 --> 00:01:04,500
+At [0:58], the phrases "equal sides for stability" and "two sides equal
+
+9
+00:01:04,500 --> 00:01:08,666
+for balance" overlay the pyramid and tent respectively.
+
+10
+00:01:08,666 --> 00:01:12,833
+At [0:60], the words "Triangles in Real Life" flash, concluding our minute
+
+11
+00:01:12,833 --> 00:01:17,000
+of math.
+
+7
+00:01:00,000 --> 00:01:03,636
+And that, my friends, is a brief introduction to simple triangles!
+
+8
+00:01:03,636 --> 00:01:07,272
+Thanks for joining us, and remember - triangles make the world go
+
+9
+00:01:07,272 --> 00:01:10,909
+round!
