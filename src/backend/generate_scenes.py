@@ -25,10 +25,10 @@ def generate_manim_code(prompt: str) -> str:
     print("--- LLM Prompt End ---")
 
     system_prompt = f"""
-{manim_knowledge}
-
-{manim_prompt_template}
-"""
+        {manim_knowledge}
+        {manim_prompt_template}
+        """
+    
     raw_output = llm.chat(system_prompt, prompt)
 
     print("\n--- Raw LLM Output ---")
