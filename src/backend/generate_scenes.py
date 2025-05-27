@@ -10,11 +10,12 @@ import re
 load_dotenv()
 
 # Initialize the LLM client
-llm = LLMClient(model="gpt-4", temperature=0.3, max_tokens=1200)
+llm = LLMClient(model="claude-sonnet-4-20250514", temperature=0.3, max_tokens=4000)
 
 # Load Manim knowledge and prompt template
 manim_knowledge = MANIM_KNOWLEDGE_PATH.read_text(encoding="utf-8")
 manim_prompt_template = MANIM_PROMPT_PATH.read_text(encoding="utf-8")
+math_tex_knowledge = Path("data/math_tex_knowledge.txt").read_text(encoding="utf-8")
 
 # -----------------------------------------------
 # Generate code from LLM and extract Python code block
@@ -25,8 +26,13 @@ def generate_manim_code(prompt: str) -> str:
     print("--- LLM Prompt End ---")
 
     system_prompt = f"""
+This is the full breakdown on how to use manim:
 {manim_knowledge}
-
+\n\n
+This is the full breakdown on how to use math_tex::
+{math_tex_knowledge}
+\n\n
+This is the task we would like you to accomplish with the given information:
 {manim_prompt_template}
 """
     raw_output = llm.chat(system_prompt, prompt)
