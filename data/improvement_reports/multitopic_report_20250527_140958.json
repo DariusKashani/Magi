@@ -1,0 +1,13 @@
+{
+  "total_improvements": 0,
+  "successful_renders": 1,
+  "failed_renders": 0,
+  "success_rate": 1.0,
+  "final_prompt_length": 726,
+  "improvements_by_topic": {},
+  "improvements": [],
+  "learning_summary": {
+    "most_common_errors": {},
+    "prompt_evolution": []
+  }
+}

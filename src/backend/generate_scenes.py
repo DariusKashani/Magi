@@ -117,9 +117,9 @@ def generate_all_scenes_from_script(script: Script):
 
 # CLI test
 if __name__ == "__main__":
-    topic = "Isosceles Triangle"
-    duration = 3
-    level = 2
+    topic = "Teach me what a derivative is?"
+    duration = 10
+    level = 3
 
     print("📜 Generating script...")
     script = generate_script(topic=topic, duration_minutes=duration, sophistication_level=level)

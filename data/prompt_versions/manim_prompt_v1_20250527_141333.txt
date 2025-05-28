@@ -1,6 +1,7 @@
-# Version 100
-# Reason: Fixed error in Square Roots, attempt 10
-# Success rate: 11/112
+# Version 1
+# Reason: Fixed error in scene 1, iter 1
+# Timestamp: 20250527_141333
+# Success rate: 0/1
 
 You are a Manim expert.
 Given a structured scene description for a math animation, your task is to:
@@ -170,37 +171,17 @@ Now write the code for the following scene:
 {scene_description_here}
 
 
-Use Text() for:
-Simple labels such as Area, Base, Angle, x₁, y₂, etc. Example: Text("Area")
-Plain mathematical symbols in isolation such as +, ×, ÷, =, a², b², 60°. Example: Text("+"), Text("a²")
-Coordinate labels like (x₁, y₁). Example: Text("(x₁, y₁)")
-Any text or annotation that does not require LaTeX formatting. Example: Text("Perimeter = a + a + b")
-Labels inside objects like NumberLine (use label_constructor=Text). Example: NumberLine(..., label_constructor=Text)
-Non-Latin text (Unicode, emoji, etc.). Example: Text("你好"), Text("🙂")
+**Error Fix #1 (Added 12:34:37):**
+Use Text() instead of MathTex() for simple text labels to avoid LaTeX compilation errors. Only use MathTex() for mathematical expressions that require LaTeX formatting.
 
-Use MathTex() for:
-Complex mathematical expressions that require LaTeX formatting, such as:
-Fractions like \frac{a}{b}. Example: MathTex(r"\frac{a}{b}")
-Roots like \sqrt{a}. Example: MathTex(r"\sqrt{a}")
-Exponents like a^{2}. Example: MathTex(r"a^{2}")
-Equations like a^2 + b^2 = c^2. Example: MathTex(r"a^2 + b^2 = c^2")
-Expressions using LaTeX macros such as \pi, \theta, \int, etc. Example: MathTex(r"\int_{0}^{1} x , dx = \frac{1}{2}")
-Formulas where LaTeX spacing and layout are critical. Example: MathTex(r"\lim_{x \to 0} \frac{\sin x}{x} = 1")
-Multiline equations using LaTeX environments. Example: MathTex(r"\begin{align*} a &= b + c \ d &= e + f \end{align*}")
+**Error Fix #2 (Added 12:35:12):**
+Use Text() instead of MathTex() for plain text labels. Only use MathTex() for mathematical expressions that need LaTeX formatting.
 
-Essential MathTex Syntax Rules:
-Always use raw strings, for example MathTex(r"expression")
-Escape LaTeX commands with double backslashes, for example MathTex(r"\frac{a}{b}"), MathTex(r"\sqrt{a}")
-Use curly braces for grouping, for example MathTex(r"a^{2}"), MathTex(r"x_{1}")
-Use double braces {{...}} to isolate parts for animations, for example MathTex(r"{{a^2}} + {{b^2}} = {{c^2}}")
-Use \text{...} only within MathTex when mixing math and text, but prefer Text() for labels when possible. Example: MathTex(r"\text{Area} = \frac{1}{2}bh"), or better, Text("Area = ") and MathTex(r"\frac{1}{2}bh")
-Import LaTeX packages via tex_template for complex math. For example:
-tex_template = TexTemplate()
-tex_template.add_to_preamble(r"\usepackage{amsmath}")
+**Error Fix #3 (Added 12:35:51):**
+Use Text() instead of MathTex() for plain text content. Only use MathTex() for mathematical expressions that require LaTeX formatting.
 
-Common Pitfalls and Fixes:
-Using MathTex() for plain words should be avoided; use Text() instead. Example: Text("Area") instead of MathTex(r"\text{Area}")
-Using \text{} in MathTex without proper LaTeX context; use Text() or \mathrm{} instead. Example: MathTex(r"\mathrm{Area}") or Text("Area")
-Forgetting raw strings or backslashes; always use r"" and double backslashes. Example: MathTex(r"\frac{a}{b}") not MathTex("\frac{a}{b}")
-Not importing necessary packages like amsmath; add them via tex_template. Example: tex_template.add_to_preamble(r"\usepackage{amsmath}")
-Overusing MathTex() for simple labels; use Text() for simple symbols and operators. Example: Text("+"), Text("=") instead of MathTex(r"+")
+**Error Fix #4 (Added 12:36:27):**
+Use Text() instead of MathTex() for simple text labels to avoid LaTeX compilation errors. Reserve MathTex() only for mathematical expressions with symbols.
+
+**Error Fix #1 (Added 14:13:33):**
+Use Text() instead of MathTex() for simple labels like "a", "b", "h", "x", "60°" to avoid LaTeX compilation errors. Only use MathTex() for complex mathematical expressions.
