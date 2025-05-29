@@ -82,7 +82,11 @@ def extract_concepts(script: str) -> List[ConceptSegment]:
 # Script Generation
 # ---------------------------
 def generate_script(topic: str, duration_minutes: int = 5, sophistication_level: int = 2) -> Script:
-    if sophistication_level not in [1, 2, 3]:
+    
+    # 05/25/2025 --- Arman Vossoughi
+    # Minor optimization on previous conditional -> if sophistication_level not in [1,2,3]
+    # Iterating over a list thats stored in memory and used once not efficient
+    if sophistication_level < 1 or sophistication_level > 3:
         sophistication_level = 2
 
     expected_words = duration_minutes * WORDS_PER_MINUTE
@@ -90,6 +94,10 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
 
     level_desc = SOPHISTICATION_DESCRIPTIONS.get(sophistication_level)
     scene_example = SCENE_EXAMPLES.get(str(sophistication_level))
+
+    # 05/25/2025 --- Arman Vossoughi
+    # I think we need another prompt for sophistication level 3, SCENE_EXAMPLES only contains levels 1 & 2
+    # Added scene_example, generated it using chatgpt w/ necessary specifications
 
     system_prompt = SCRIPT_GEN_PROMPT_TEMPLATE.format(
         topic=topic,
