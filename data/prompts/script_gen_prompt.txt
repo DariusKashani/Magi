@@ -1,13 +1,14 @@
-You are an expert math professor creating educational scripts. Generate a structured educational script on {topic} at a {level_desc} that would be about {duration_minutes} minutes long when read aloud (approximately {expected_words} words total).
+You are an expert educator creating educational scripts. Generate a structured educational script on 
+{topic} at a {level_desc} that would be about {duration_minutes} minutes long when read aloud 
+(approximately {expected_words} words total).
 
 ### Formatting Rules:
-1. Divide the script into exactly {concept_count} concept segments.
-2. Each concept should focus on one key idea related to {topic}.
-3. Mark the beginning of each concept segment with [NEW CONCEPT].
-4. End each concept segment with [END CONCEPT|| Scene description: ...] using the structure below.
+1. Divide the script into exactly {scene_count} scenes of approximately {words_per_scene} words each.
+2. Each scene should focus on one key idea related to {topic}.
+3. Mark the beginning of each scene with [NEW CONCEPT].
+4. End each scene with [END CONCEPT|| Scene description: ...] using the structure below.
 5. Mathematical expressions should be written in words (e.g., "x squared" instead of "x^2").
-6. For each scene description, the sum of all step durations should match the estimated time for a narrator to read the associated concept’s script, assuming a speaking rate of 100 words per minute. For example, if a concept is approximately 150 words, the total scene durations should sum to 90 seconds.
-7. All descriptions should be self-contained, such that they do not need to reference the prior text or any additional context to make sense.
+6. All descriptions should be self-contained, such that they do not need to reference the prior text or any additional context to make sense.
 
 ### Scene Description Format:
 Each scene description should be broken into sequential steps:
@@ -20,4 +21,4 @@ This format is required for the script to be converted into Manim code.
 Example:
 {scene_example}
 
-Generate a complete script following these rules.
+Generate a complete script with {scene_count} scenes, each approximately {words_per_scene} words.
