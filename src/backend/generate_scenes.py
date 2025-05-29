@@ -13,7 +13,7 @@ import time
 load_dotenv()
 
 # Initialize the LLM client
-llm = LLMClient(model="claude-sonnet-4-20250514", temperature=0.3, max_tokens=20000)
+llm = LLMClient(model="claude-sonnet-4-20250514", temperature=0.3, max_tokens=8000)
 
 # Load Manim knowledge and prompt template
 manim_knowledge = MANIM_KNOWLEDGE_PATH.read_text(encoding="utf-8")
