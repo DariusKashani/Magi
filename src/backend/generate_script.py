@@ -71,9 +71,16 @@ class Script:
 # ---------------------------
 # Utility Functions
 # ---------------------------
+# ---------------------------
+# Utility Functions
+# ---------------------------
 def extract_concepts(script: str) -> List[ConceptSegment]:
-    pattern = r'\[NEW CONCEPT\](.*?)\[END CONCEPT\|\| Scene description:\s*(.*?)\](?=\n\[NEW CONCEPT\]|\Z)'
+    # More flexible regex pattern to match the actual LLM output
+    pattern = r'\[NEW CONCEPT\]\s*(.*?)\s*\[END CONCEPT\|\| Scene description:\s*(.*?)\]\](?=\s*\[NEW CONCEPT\]|\s*$)'
     matches = re.findall(pattern, script, flags=re.DOTALL)
+    
+    print(f"🔍 DEBUG: Regex found {len(matches)} matches")
+    
     segments = [ConceptSegment(n.strip(), s.strip()) for n, s in matches]
     return segments
 
