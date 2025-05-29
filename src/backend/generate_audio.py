@@ -31,9 +31,9 @@ def create_silent_audio(output_path: Path, duration_seconds: float) -> Path:
     try:
         subprocess.run([
             "ffmpeg", "-y",
-            "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo",
+            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
             "-t", str(duration_seconds),
-            "-c:a", "aac", "-b:a", "128k",
+            "-c:a", "libmp3lame", "-b:a", "128k",
             str(output_path)
         ], check=True, capture_output=True)
         return output_path
@@ -70,4 +70,3 @@ def generate_audio_narration(text: str, filename: str = None, dry_run: bool = Tr
     print("Using silent audio")
     estimated_duration = len(text.split()) / 2.5
     return create_silent_audio(audio_path, estimated_duration)
-

@@ -9,7 +9,11 @@ from config.paths import VIDEO_OUTPUT_DIR
 from config.settings import WORDS_PER_MINUTE
 
 load_dotenv()
-FFMPEG_PATH = os.path.expanduser("~/bin/ffmpeg")
+import shutil
+
+FFMPEG_PATH = shutil.which("ffmpeg")
+if FFMPEG_PATH is None:
+    raise FileNotFoundError("ffmpeg not found in PATH. Please install it or add it to your PATH.")
 
 def safe_slugify(text: str) -> str:
     """Convert text to safe folder name"""
@@ -119,7 +123,7 @@ def make_video(topic: str, level: int = 2, duration: int = 10, dry_run: bool = F
     # Step 2.5: Concatenate scene videos
     slugged = safe_slugify(topic)
     video_dir = VIDEO_OUTPUT_DIR / slugged
-    video_files = sorted(video_dir.glob("scene_*.mp4"))
+    video_files = sorted(video_dir.rglob("scene_*.mp4"))
     if not video_files:
         raise FileNotFoundError(f"No scene videos found in {video_dir}")
 
