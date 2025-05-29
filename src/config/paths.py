@@ -28,4 +28,4 @@ MANIM_PROMPT_PATH = PROMPTS_PATH / "manim_code_prompt.txt"
 # Knowledge Base
 # ---------------------------
 MANIM_KNOWLEDGE_PATH = DATA_PATH / "manim_knowledge.txt"
-SCENE_EXAMPLES_PATH = DATA_PATH / "scene_example.json"
+SCENE_EXAMPLES_PATH = Path("data/scene_examples.yaml")  # Change extension

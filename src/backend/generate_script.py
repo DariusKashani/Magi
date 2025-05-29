@@ -1,21 +1,21 @@
 from dotenv import load_dotenv
 import os
 import re
-import json
+import yaml
 from dataclasses import dataclass
 from typing import List
 
 # ---------------------------
 # Settings and Config
 # ---------------------------
-from config.settings import WORDS_PER_MINUTE, WORDS_PER_CONCEPT, SOPHISTICATION_DESCRIPTIONS
+from config.settings import WORDS_PER_MINUTE, SOPHISTICATION_DESCRIPTIONS
 from config.paths import SCENE_EXAMPLES_PATH, SCRIPT_GEN_PROMPT_PATH
 from config.llm import LLMClient
 
 # ---------------------------
 # Load Prompt Components
 # ---------------------------
-SCENE_EXAMPLES = json.loads(SCENE_EXAMPLES_PATH.read_text(encoding="utf-8"))
+SCENE_EXAMPLES = yaml.safe_load(SCENE_EXAMPLES_PATH.read_text(encoding="utf-8"))
 SCRIPT_GEN_PROMPT_TEMPLATE = SCRIPT_GEN_PROMPT_PATH.read_text(encoding="utf-8")
 
 # ---------------------------
@@ -77,7 +77,6 @@ def extract_concepts(script: str) -> List[ConceptSegment]:
     segments = [ConceptSegment(n.strip(), s.strip()) for n, s in matches]
     return segments
 
-
 # ---------------------------
 # Script Generation
 # ---------------------------
@@ -87,7 +86,10 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         sophistication_level = 2
 
     expected_words = duration_minutes * WORDS_PER_MINUTE
-    concept_count = max(20, expected_words // WORDS_PER_CONCEPT)
+    
+    # Calculate reasonable scene count (aim for 2-3 minutes per scene)
+    scene_count = max(3, min(8, duration_minutes // 2))
+    words_per_scene = expected_words // scene_count
 
     level_desc = SOPHISTICATION_DESCRIPTIONS.get(sophistication_level)
     scene_example = SCENE_EXAMPLES.get(str(sophistication_level))
@@ -97,18 +99,41 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         level_desc=level_desc,
         duration_minutes=duration_minutes,
         expected_words=expected_words,
-        concept_count=concept_count,
+        scene_count=scene_count,
+        words_per_scene=words_per_scene,  # ADD THIS LINE
         scene_example=scene_example
     )
 
     user_prompt = (
         f"Create a detailed educational script about {topic} at a {level_desc} sophistication level. "
-        f"The script should have exactly {concept_count} concepts, each with [NEW CONCEPT] and [END CONCEPT|| Scene description: ...] markers."
+        f"The script should have exactly {scene_count} scenes, each approximately {words_per_scene} words. "
+        f"Target total length: {expected_words} words ({duration_minutes} minutes when spoken). "
+        f"Use [NEW CONCEPT] and [END CONCEPT|| Scene description: ...] markers for each scene."
     )
 
     try:
         full_script = llm.chat(system_prompt, user_prompt)
+        
+        # Debug output to track what's happening
+        print(f"🔍 DEBUG: Raw script length: {len(full_script)} characters")
+        print(f"🔍 DEBUG: Requested {scene_count} scenes with ~{words_per_scene} words each")
+        print(f"🔍 DEBUG: Target: {expected_words} words = {duration_minutes} minutes")
+        
         segments = extract_concepts(full_script)
+        print(f"🔍 DEBUG: Extracted {len(segments)} segments")
+        
+        if segments:
+            total_words = sum(len(seg.narration.split()) for seg in segments)
+            estimated_duration = total_words / WORDS_PER_MINUTE
+            print(f"🔍 DEBUG: Actual: {total_words} words = {estimated_duration:.1f} minutes")
+            
+            # Show word count per segment
+            for i, seg in enumerate(segments, 1):
+                word_count = len(seg.narration.split())
+                print(f"  Scene {i}: {word_count} words")
+        else:
+            print("🔍 DEBUG: No segments extracted - check regex pattern!")
+            print(f"🔍 DEBUG: Raw script preview:\n{full_script[:500]}...")
 
         return Script(
             topic=topic,

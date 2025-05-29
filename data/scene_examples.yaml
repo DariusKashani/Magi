@@ -1,0 +1,66 @@
+"1": |
+  [NEW CONCEPT]
+  Let's explore what a derivative really means using a simple example.
+  Imagine you're driving a car and you want to know how fast you're going at any exact moment.
+  Your speedometer shows your instantaneous speed, but how is that calculated?
+  This is exactly what a derivative does - it measures the rate of change at a specific point.
+  Let's say you're driving and your position changes over time.
+  If we plot your position on a graph with time on the x-axis and distance on the y-axis, we get a curve.
+  The derivative at any point on this curve tells us the slope of the line that just touches the curve at that point - this is called the tangent line.
+  The steeper the slope, the faster you're going.
+  If the curve is flat, your speed is zero.
+  If the curve goes down, you're moving backwards.
+  This concept of finding the instantaneous rate of change is fundamental to calculus and appears everywhere in science, engineering, and economics.
+  [END CONCEPT|| Scene description:
+  Static state 1: Display a coordinate plane with time on x-axis and position on y-axis. [duration: 15s]
+  Animation 1: Draw a curved line representing position over time, starting low and curving upward. [duration: 20s]
+  Animation 2: Add a car icon moving along the curve, emphasizing that position changes with time. [duration: 25s]
+  Animation 3: Select a point on the curve and draw a tangent line at that point. [duration: 30s]
+  Animation 4: Show the slope calculation of the tangent line and label it as 'instantaneous velocity' or 'derivative'. [duration: 20s]
+  Animation 5: Move the point to different locations on the curve, showing how the tangent slope changes. [duration: 30s]]
+
+"2": |
+  [NEW CONCEPT]
+  The formal definition of a derivative involves the concept of limits, which allows us to find the exact slope of a curve at any point.
+  Consider a function f(x) and a point where we want to find the derivative.
+  We start by taking two points on the curve that are very close together - one at x and another at x plus a tiny amount we call h.
+  The slope between these two points is the change in y divided by the change in x, which equals f(x plus h) minus f(x) all over h.
+  This gives us the average rate of change between the two points.
+  But we want the instantaneous rate of change, not the average.
+  To get this, we make h smaller and smaller, approaching zero.
+  As h approaches zero, the two points get closer and closer together, and the slope of the line connecting them approaches the slope of the tangent line at point x.
+  This limiting process is written as the limit as h approaches zero of f(x plus h) minus f(x) over h.
+  When this limit exists, we call it the derivative of f at x, often written as f prime of x or df/dx.
+  This definition might seem abstract, but it's the foundation for all derivative calculations and gives us a precise way to measure instantaneous rates of change.
+  [END CONCEPT|| Scene description:
+  Static state 1: Show a smooth curve representing function f(x) on a coordinate plane. [duration: 18s]
+  Animation 1: Mark two points on the curve - one at x and another at x+h where h is visibly large. [duration: 25s]
+  Animation 2: Draw a secant line connecting these two points and show the slope calculation (f(x+h)-f(x))/h. [duration: 30s]
+  Animation 3: Gradually decrease the value of h, making the second point move closer to the first. [duration: 35s]
+  Animation 4: Show the secant line rotating and approaching the tangent line as h approaches zero. [duration: 30s]
+  Animation 5: Display the limit definition: lim(h→0) [f(x+h)-f(x)]/h = f'(x). [duration: 25s]
+  Animation 6: Emphasize that this limit gives us the exact slope of the tangent line. [duration: 17s]]
+
+"3": |
+  [NEW CONCEPT]
+  The concept of differentiability is more nuanced than simple existence of a derivative.
+  A function is differentiable at a point if the derivative exists at that point, but this requires several conditions to be met simultaneously.
+  First, the function must be continuous at the point - there cannot be any jumps or gaps.
+  However, continuity alone is not sufficient for differentiability.
+  The function must also be smooth, meaning it cannot have any sharp corners or cusps.
+  Consider the absolute value function f(x) equals the absolute value of x.
+  This function is continuous everywhere, including at x equals zero, but it has a sharp corner at the origin.
+  When we try to compute the derivative at x equals zero using the limit definition, we find that the left-hand limit and right-hand limit give different values.
+  The left-hand derivative is negative one, while the right-hand derivative is positive one.
+  Since these one-sided limits don't agree, the derivative doesn't exist at x equals zero, making the function non-differentiable at that point.
+  This illustrates an important principle: differentiability is a stronger condition than continuity.
+  Every differentiable function is continuous, but not every continuous function is differentiable.
+  In multivariable calculus, this concept becomes even more complex, requiring partial derivatives to exist and satisfy additional smoothness conditions.
+  [END CONCEPT|| Scene description:
+  Static state 1: Display the graph of f(x) = |x|, emphasizing the sharp corner at the origin. [duration: 22s]
+  Animation 1: Show the function approaching x=0 from the left, drawing secant lines with slope -1. [duration: 28s]
+  Animation 2: Show the function approaching x=0 from the right, drawing secant lines with slope +1. [duration: 28s]
+  Animation 3: Highlight that the left and right limits give different values (-1 and +1). [duration: 25s]
+  Animation 4: Display text showing 'Left derivative = -1' and 'Right derivative = +1'. [duration: 20s]
+  Animation 5: Show a smooth function like f(x) = x² for contrast, demonstrating how it has well-defined derivatives everywhere. [duration: 30s]
+  Animation 6: Present the hierarchy: 'Differentiable ⊂ Continuous ⊂ Defined' with examples. [duration: 27s]]
