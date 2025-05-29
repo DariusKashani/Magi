@@ -1,3 +1,13 @@
+Start Project:
+****
+source ./install_dependencies.sh
+pip install -e .
+add .env file
+conda activate MageEnv
+brew install --cask mactex
+****
+
+
 order of operations
 
 -------------------------

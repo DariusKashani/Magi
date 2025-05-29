@@ -1,0 +1,260 @@
+Advanced Guide to Using MathTex and Text in Manim Community Edition
+Introduction
+This guide provides a comprehensive look at advanced usage of the MathTex and Text classes in the latest Manim Community edition. It assumes you are already familiar with Manim basics and focuses on advanced techniques, formatting options, performance considerations, and common pitfalls when working with LaTeX-based math text and standard text. We will explore how to format and animate text/formulas, optimize performance, debug common errors, and highlight differences in the latest Manim version.
+Overview
+Manim offers two primary ways to render text in scenes:
+
+Text/MarkupText (Pango) – uses the Pango library to render text with system fonts (supports Unicode, non-Latin scripts, etc.). Best for regular text, labels, or multi-language text.
+Tex/MathTex (LaTeX) – uses a LaTeX engine to render formulas and can also render text via TeX typesetting. Best for mathematical equations or when LaTeX's high-quality math formatting is needed.
+
+In general, use Text (or its variant MarkupText) for plain text and MathTex (or Tex) for mathematical typesetting. The sections below delve into advanced features of each and how to integrate them in complex scenes.
+Understanding MathTex vs. Text in Manim
+Before diving into details, it's important to understand the fundamental differences between these classes:
+Text (Pango)
+Renders text by converting it into vector shapes via Pango (and Cairo). It uses fonts installed on your system, allowing a wide range of typefaces and full Unicode support (you can directly display characters like 你好, αβγ, or emoji). Text is treated as an SVGMobject, meaning the text is essentially a collection of SVG vector paths in Manim. You can manipulate it like any other vector mobject (scale, rotate, change fill/stroke, etc). No TeX installation is required for Text.
+MathTex (LaTeX)
+Renders text by compiling a LaTeX string into an SVG using a TeX engine. Everything passed to MathTex is in math mode by default, processed inside a LaTeX align* environment. This means MathTex is ideal for formulas: it will apply proper mathematical fonts, spacing, and formatting. Because of the align* environment, you can use the & alignment character to align columns in multiline equations. MathTex requires a working LaTeX installation (including packages like dvisvgm) on your system. It produces beautiful math but has the overhead of LaTeX compilation.
+Tex vs MathTex
+Manim also provides a class Tex, which is very similar to MathTex but treats the input as normal LaTeX text (outside math mode) unless you explicitly enter math mode with $...$ or \(...\) inside the string. Essentially, Tex compiles in non-math mode by default (using a center environment), whereas MathTex assumes math mode throughout. For purely mathematical expressions, MathTex is convenient (no need for $ delimiters). If you need to mix text and math in one string, Tex is often more appropriate since you can intermix math mode and text mode easily (e.g., Tex("The value of $x^2$ is 4.")). In this guide, we'll focus on MathTex for math and Text for plain text, but remember Tex exists for combined needs.
+MarkupText
+A variant of Text that allows using Pango's markup language for inline formatting (bold, italics, color spans, etc.). This is useful for advanced text styling within a single string. We will mention it in context, but generally you can achieve similar styled text with the Text class using its parameters for coloring and font style.
+Key Point: Use MathTex when you need mathematical symbols or precise formula layout as LaTeX provides. Use Text for regular text, especially if using non-English characters or if you don't want the dependency on LaTeX.
+Advanced Usage of the Text Class
+Manim's Text class is designed for flexibility in rendering text. Here are advanced techniques and options to get the most out of it:
+Fonts and Styles
+You can specify the font by name (it must be installed on your system). For example, Text("Hello", font="Times New Roman", slant=ITALIC, weight=BOLD) will produce italic, bold text in Times New Roman. The slant can be NORMAL (default), ITALIC, or OBLIQUE, and weight can be THIN, NORMAL, BOLD, etc., depending on font support. If you don't specify a font, Manim uses a default (usually "Sans" which maps to a generic sans-serif). You can list available fonts with manimpango.list_fonts() if needed.
+Note that Text is rendered with 0 stroke width by default (just filled shapes), so if you want an outline on text, you can call text.set_stroke(color, width) to add an outline.
+Size and Scaling
+The font_size parameter (or just size in some versions) sets the font size in points. Keep in mind that since Text is vectorized, you can also scale the resulting mobject without quality loss. If you plan to transform text to other mobjects, it's often easier to set an initial font_size and avoid non-uniform scaling later (to keep stroke widths consistent, for example).
+Multi-line Text
+You can create multi-line text by including newline characters \n in the string, or by using the Paragraph class which handles multiple lines with alignment and spacing options. For instance, Paragraph("Line 1", "Line 2", alignment="center") will stack lines. If using Text with \n, you might also adjust line spacing via the line_spacing parameter (default is 0.3). Paragraph gives more control (like inter-line spacing and alignment per paragraph), whereas a single Text object with newlines is quick for simple cases.
+Partial Formatting with Text
+The Text class provides convenient arguments to style parts of the text:
+
+t2c (text-to-color): a dictionary mapping substrings (or character indices in the form of slice strings) to colors. Example: Text("Hello World", t2c={"World": YELLOW}) will color "World" in yellow, and t2c={"[0]": RED} would color the first character red.
+t2s (text-to-slant) and t2w (text-to-weight): similar dictionaries to apply ITALIC/OBLIQUE or BOLD weight to specific substrings. For example, Text("Vector Space", t2s={"Vector": ITALIC}) italicizes "Vector", and t2w={"Space": BOLD} bolds "Space".
+t2f (text-to-font): map substrings to different fonts. E.g., Text("Manim", t2f={"M": "Comic Sans MS"}) would use Comic Sans for the "M" (if you're so inclined).
+
+These options allow mixing styles in one Text mobject without manually breaking it up. They work by internally splitting the text and applying attributes to those parts.
+Example:
+pythonclass TextStylingDemo(Scene):
+    def construct(self):
+        title = Text("Manim Guide", font="Georgia", weight=BOLD, slant=ITALIC, gradient=(BLUE, GREEN))
+        # "gradient" above fills text with a color gradient from BLUE to GREEN
+        styled = Text(
+            "Advanced Text Formatting", font="Times New Roman", font_size=48,
+            t2c={"Text": YELLOW},            # color the substring "Text" in yellow
+            t2w={"Formatting": BOLD},        # bold the substring "Formatting"
+            t2s={"Advanced": ITALIC},        # italicize "Advanced"
+        )
+        group = VGroup(title, styled).arrange(DOWN, buff=0.5)
+        self.add(group)
+Using MarkupText
+If you prefer or need to use Pango's markup (similar to HTML/XML style tags), you can use MarkupText instead of Text. For example: MarkupText('<span foreground="red" size="x-large">RED</span> and <i>Italic</i>'). MarkupText gives fine-grained control with tags for color, italic, bold (<b>), underlines, etc. However, for most purposes, the t2c, t2w, t2s parameters of Text are simpler to use programmatically.
+Note: When using MarkupText, if your string contains XML-reserved characters (& < >), you need to escape them or turn off markup. With Text, these characters are rendered literally by default since no markup is parsed.
+Non-English and Unicode
+One advantage of the Text class is easy rendering of non-English text. You can directly include languages like Chinese, Arabic, Hindi, etc., and as long as you have a font that supports those characters, Pango will render them properly. You may specify a font known to support your script (for example, a Chinese font for Chinese text). If you see missing glyphs (tofu boxes), choose an appropriate font. Emojis can also be rendered if you have an emoji font (e.g., Apple Color Emoji, Segoe UI Emoji).
+SVG and Submobjects
+Each Text mobject is a VGroup of vector shapes internally. Typically, each character (or each glyph) is a submobject path. This means you can access and manipulate individual letters if needed. For example, text = Text("ABC") then text[0] is the letter "A" as a sub-path, text[1] is "B", etc. You could animate letters individually (e.g., fade out one letter). Manim provides helper animations like AddTextLetterByLetter which will animate a Text appearing one letter at a time, and AddTextWordByWord for word-by-word appearance.
+Since advanced users might prefer manual control, you can also do:
+pythonfor letter in text:
+    letter.set_color(random_color())
+to randomly color each letter, for instance. Keep in mind that spaces are typically not included as submobjects (they have no path).
+Text Alignment and Positioning
+If you need to align text to left, right, or center within a certain width, consider using Paragraph which has alignment options. For single-line Text, you can also manually adjust by setting an anchor. By default, Text is centered at its origin. You can get its width/height and adjust positions or use text.align_to(other_object, LEFT) for alignment relative to another object.
+Performance Tip
+The Text class is quite efficient for moderate amounts of text, but if you create very many text mobjects (hundreds or thousands), rendering can slow down. If you need to display a large grid or list of text, try to minimize creating unique text strings repeatedly. Pango/Manim does cache glyph shapes internally, so reusing the same text or not changing fonts repeatedly can improve speed.
+Advanced Usage of the MathTex Class
+MathTex is Manim's gateway to LaTeX for math. It compiles LaTeX code into an SVG on the fly. Here are advanced techniques for MathTex:
+LaTeX Basics in MathTex
+As mentioned, MathTex treats its input as if inside align* math mode. You do not include $ signs – just write the LaTeX math content. For example, MathTex("E=mc^2") will render Einstein's formula in math italics. If you want normal (upright) text within a MathTex (say a word or label), you should use LaTeX \text{...} or \mathrm{...} commands. For instance, MathTex(r"\text{Hello } x^2") will render "Hello" in upright text font followed by x².
+Note: If you forget and just put normal letters in MathTex without \text{}, they will appear in math italic (e.g., MathTex("Hello") will render Hello all in math italics, not ideal for plain text).
+Using Tex (non-math mode)
+If you have a string that is mostly text with some math, consider using Tex instead. For example, Tex("The roots are $x=3$ or $x=-3$.") will allow you to write a natural sentence with in-line math. In Tex, content outside of $...$ is in text mode (Roman font) and inside is math mode. Essentially, Tex is a thin wrapper that calls MathTex internally but automatically inserts your string into a LaTeX document without forcing math mode for the whole string.
+Multiple Substrings and Arg Separator
+MathTex (and Tex) can take multiple strings as arguments: MathTex(str1, str2, str3, ...). Each argument will be compiled as part of the same LaTeX formula but will be separated into its own submobject in the final mobject group. By default, MathTex uses an arg_separator=" " (a space) between consecutive arguments, meaning MathTex("a^2", "+", "b^2") is equivalent to MathTex("a^2 + b^2") visually, but in the first case "a^2" and "b^2" (and "+") are separate submobjects.
+This is extremely useful: it allows you to construct a formula and still easily refer to or transform individual parts. For example, if you want to animate a² + b² = c² and later change it to a² = c² - b², you might create lhs = MathTex("a^2", "+", "b^2") and rhs = MathTex("c^2") and then assemble them, so you can target the pieces.
+Coloring and Styling Portions of MathTex
+By default, a single MathTex string (with no manual argument separation) is treated as one submobject. If you try to color a substring via set_color_by_tex without isolating it, you may find it colors the whole expression or nothing. To color or animate specific components, you need to isolate them as separate submobjects. There are two main ways to do this:
+Multiple arguments or substrings_to_isolate:
+pythonequation = MathTex(
+    r"e^x = x^0 + x^1 + \frac{1}{2}x^2 + \cdots",
+    substrings_to_isolate="x"
+)
+equation.set_color_by_tex("x", YELLOW)
+Double-brace syntax:
+Manim Community introduced a very handy shorthand to isolate parts of a formula: wrap the parts in double braces {{ ... }} in the LaTeX string. For example:
+pythonformula = MathTex(r"{{ a^2 }} + {{ b^2 }} = {{ c^2 }}")
+will automatically isolate each of a², b², and c² (and the +, = as well) as separate submobjects. The double braces are not rendered in the output; they just tell Manim how to group the submobjects.
+Example (Coloring and isolating):
+pythonclass MathTexColoringDemo(Scene):
+    def construct(self):
+        expr = MathTex(r"E = m c^2", tex_to_color_map={"E": BLUE, "c": RED})
+        # In the above, tex_to_color_map will color 'E' blue and 'c' red automatically
+        formula = MathTex(r"{{ a^2 }} + {{ b^2 }} = {{ c^2 }}")
+        # Isolate parts using double braces for separate animation later
+        formula.set_color_by_tex("a^2", YELLOW)  # color a^2 in yellow
+        formula.set_color_by_tex("b^2", GREEN)   # color b^2 in green
+        self.add(VGroup(expr, formula).arrange(DOWN))
+Getting Subparts
+MathTex inherits from SingleStringMathTex internally, and the resulting object may be nested. If you create a complex expression and wonder how to access, say, the numerator of a fraction or an exponent, you have a few tools:
+
+Every MathTex (or Tex) result is a group of submobjects. You can use formula.submobjects or simply iterate for part in formula: to see top-level components.
+The MathTex class provides methods like get_part_by_tex("substring") and get_parts_by_tex("substring") to retrieve submobjects matching a particular TeX substring.
+For deeper inspection, you can use the index_labels() function during development. This is a debugging utility: self.add(index_labels(mobject)) will superimpose little number labels on each submobject of the given mobject.
+
+Custom LaTeX Preamble and Packages
+Sometimes you need additional LaTeX functionality – maybe a special symbol or font that requires a package. Manim uses a TexTemplate for LaTeX rendering. By default, it includes basic packages (amsmath, amssymb, dsfont and a few others). You can extend or replace this.
+Example:
+pythonfrom manim import TexTemplate
+my_template = TexTemplate()
+my_template.add_to_preamble(r"\usepackage{mathrsfs}")  # for \mathscr
+formula = MathTex(r"\mathscr{L} = \int_0^\infty f(x)\,dx", tex_template=my_template)
+Changing Math Fonts
+Unlike Text, you can't just specify a font name in MathTex directly (the LaTeX is using its own fonts). Changing math font is an advanced LaTeX task – it requires using packages or different TeX font setups. Manim Community comes with a TexFontTemplates library that makes this easier. These are predefined TexTemplate instances configured to use certain fonts for math mode.
+Example:
+pythontex = Tex("x^2 + y^2 = z^2", tex_template=TexFontTemplates.french_cursive)
+MathTex and Escape Characters
+Always use raw strings (r"...") for MathTex/Tex strings, or properly escape backslashes. LaTeX syntax is full of backslashes, and a common mistake is writing MathTex("\frac{a}{b}") without a raw string – Python will interpret \f as a form-feed character, etc., leading to errors or unexpected behavior. So do MathTex(r"\frac{a}{b}").
+Dynamic Content (Updating MathTex/Text)
+Often advanced animations require numbers or formulas to update (like showing a value changing over time). There are a few approaches:
+Replacing the mobject:
+pythonclass CountDemo(Scene):
+    def construct(self):
+        counter = ValueTracker(0)
+        number = always_redraw(lambda: MathTex(f"Count = {counter.get_value():.0f}"))
+        # always_redraw will re-create the MathTex on each frame
+        self.add(number)
+        self.play(counter.animate.set_value(100), run_time=5, rate_func=linear)
+Common MathTex Errors
+Since MathTex relies on LaTeX, if something goes wrong, you'll usually see a LaTeX compilation error message in the console. Some common ones:
+
+"LaTeX error: File ___ not found" – usually means a required LaTeX package or font is missing from your TeX installation.
+"! Undefined control sequence" – means you used a LaTeX command that's not defined. Perhaps you forgot to include a package.
+"Missing $ inserted" or "missing begin{document}" – indicates you might have tried to use MathTex for text mode content without proper syntax.
+Missing characters – If certain letters or symbols are blank, it might be a font issue in LaTeX.
+
+Integrating Text and MathTex with Animations
+Text and MathTex can be animated just like any other mobject. Here are some common scenarios and tips:
+Writing Text or Math (Handwriting effect)
+Use the Write() animation. self.play(Write(text_obj)) will animate the strokes of the text or formula as if being written out. This works for both Text and MathTex. For Text, since by default stroke width is 0 (filled), Manim internally gives it an outline during writing.
+Fade In/Out
+If you just need the text or formula to appear or disappear without the writing effect, FadeIn and FadeOut are straightforward. For instance, self.play(FadeIn(formula)) pops the whole MathTex in.
+Transforming Text/Math
+One powerful feature is transforming one text or Tex mobject into another. For example, turning a formula into a simplified version, or changing a word in a sentence. The simplest is Transform(old_obj, new_obj). However, if the two are not the same shape/structure, letters will morph arbitrarily. Advanced users will want to use:
+TransformMatchingTex:
+This animation finds matching TeX substrings between two MathTex (or Tex) objects and animates those parts to their new positions, while fading in/out the rest. To use it effectively, you must ensure the same pieces have identical LaTeX in both source and target, and are isolated as submobjects.
+Example:
+pythonexpr1 = MathTex("{{ a^2 }} + {{ b^2 }} = {{ c^2 }}")
+expr2 = MathTex("{{ a^2 }} = {{ c^2 }} - {{ b^2 }}")
+self.play(TransformMatchingTex(expr1, expr2))
+Moving and Positioning Text in Animations
+Text and MathTex behave like any mobject for movement. You can text_obj.animate.shift(2*LEFT) or use ApplyMethod(text_obj.shift, 2*LEFT), etc.
+Animating Parts of Text/Math
+Since you can access submobjects, you can animate only part of a text. For example, given formula = MathTex("E = m c^2"), you could do self.play(formula[0][0].animate.set_color(RED)) to just animate the color change of the "E".
+Special Effects
+There are some ready-made animations for text:
+
+Typewriter effect: The combination of AddTextLetterByLetter and an animated cursor
+Text flashing or highlighting: You might temporarily change color of text or use Indicate(text_obj)
+Surrounding shapes: You can use shapes to highlight text, e.g., SurroundingRectangle(formula, color=YELLOW)
+
+Example (Transform and Update):
+pythonclass FormulaTransformDemo(Scene):
+    def construct(self):
+        # Initial equation
+        eq1 = MathTex("{{ a^2 }} + {{ b^2 }} = {{ c^2 }}")
+        # Target equation
+        eq2 = MathTex("{{ a^2 }} = {{ c^2 }} - {{ b^2 }}")
+        eq2.to_corner(UR)  # place target in a corner for effect
+        self.add(eq1)
+        self.wait()
+        # Transform equation to the new form
+        self.play(TransformMatchingTex(eq1, eq2))
+        self.wait()
+
+class CountingDemo(Scene):
+    def construct(self):
+        number = ValueTracker(0)
+        # Display the number using DecimalNumber (auto-updates with ValueTracker)
+        num_mob = DecimalNumber(number.get_value(), show_ellipsis=False, num_decimal_places=0)\
+                      .add_updater(lambda m: m.set_value(number.get_value()))
+        label = Text("Count:", t2w={"Count": BOLD})
+        label.next_to(num_mob, LEFT)
+        self.add(label, num_mob)
+        # Animate the number from 0 to 50
+        self.play(number.animate.set_value(50), run_time=5, rate_func=smooth)
+        self.wait()
+Performance Tips and Considerations
+When working with text and formulas in Manim, here are some tips to keep your animations running smoothly:
+Caching
+Manim will cache rendered LaTeX and Pango text to speed up future uses. If you use the exact same string in MathTex or Text multiple times, Manim should reuse the SVG result from cache. This means you pay the LaTeX cost once. Take advantage of this by reusing MathTex objects if possible, or using .copy() when showing the same text in different places.
+Batching vs. splitting
+Balance the number of mobjects vs. flexibility. For example, to display a table of numbers, you might be tempted to create a Text for each entry (which could be hundreds of objects). Consider instead creating one larger Text or Paragraph with line breaks and some spacing.
+Font choices and sizes
+Complex fonts (very fancy or calligraphic fonts) might have more complex outlines and thus heavier SVGs. If performance is critical, a standard font (Arial, Times, etc.) could be slightly faster to render than an ornate script.
+Avoid excessive LaTeX compilations
+LaTeX is the bottleneck for MathTex. If you need to show a sequence of formulas (like frames of an animation), see if you can formulate it as a single MathTex with parts that you reveal or transform, rather than separate unrelated MathTex creations.
+Scene Breakdown
+If you have a very text-heavy presentation (like long paragraphs, code listings, etc.), it might be wise to break it into multiple scenes or use camera tricks so that each scene handles a subset of text.
+Memory considerations
+Very large bodies of text or extremely complex formulas can consume memory. If you animate a lot of them, you might experience memory bloat. Use self.remove(mobject) for things that are no longer needed in the scene to free memory.
+Common Errors and Debugging Strategies
+Working with text and LaTeX introduces some common challenges. Here's a list of issues you might encounter and how to address them:
+LaTeX Compilation Failed
+If MathTex or Tex fails to render, Manim will usually print an error message from LaTeX. Check the log output in your terminal; it often shows a TeX error line. Common issues:
+
+"Undefined control sequence \foo" means the macro \foo isn't recognized
+"Missing $ inserted" means your LaTeX syntax is off
+Fix your LaTeX string accordingly
+
+LaTeX Not Found (or dvisvgm issues)
+If you get errors like "No such file or directory: latex" or "dvisvgm not found", it means Manim cannot call the latex or dvisvgm commands. Ensure you have a TeX distribution installed and that the commands are in your PATH.
+Some letters missing in output (for LaTeX)
+If certain characters are not appearing in MathTex output, you might need to regenerate LaTeX font maps. Run fmtutil -sys --all for TeX Live or update MikTeX's font cache.
+Pango text not displaying or weird symbols
+If a Text or MarkupText shows blanks or � symbols, likely the chosen font doesn't support those characters. Switch to a font known to cover the needed script or symbols.
+Alignment issues between Text and MathTex
+If you put a Text next to MathTex, you might notice baseline mismatches. To fix this, you can align by hand: e.g., text.align_to(mathtex, DOWN) might align their bottoms, or adjust by a small offset.
+set_color_by_tex not working as expected
+If you call some_mathtex.set_color_by_tex("x", RED) and nothing happens, ensure that "x" was isolated. If the entire expression is one subobject, set_color_by_tex will end up coloring the whole thing if it finds an "x", or nothing if it doesn't recognize it.
+Very long text runs off screen or overlaps
+Manim by default doesn't auto-wrap text. If you have a long sentence in Text, it will be one line unless you insert \n. Use newlines or the Paragraph class for multi-line text.
+Debugging LaTeX visually
+If a formula isn't positioned as expected, remember that every MathTex returns a group. Sometimes an entire equation is in mobject[0] and the rest are deeper. Using print(mobject) might just give a summary. Instead, use mobject.submobjects or index labels to see the structure.
+When to Use MathTex vs. Text (Comparison)
+Finally, let's summarize when to use each class, as choosing the right one will save you time and trouble:
+Use MathTex (or Tex) when:
+
+You need to display mathematical formulas, symbols, or equations with proper formatting
+You want consistency with LaTeX documents or have complex math notation
+You plan to animate transformations between formulas
+You need a feature of LaTeX, like automatically numbered equations, alignment with &, or using LaTeX macro packages
+You are comfortable writing LaTeX code for formatting
+
+Use Text (or MarkupText) when:
+
+You are adding labels, annotations, or paragraphs of explanatory text that do not involve math
+You need to render non-Latin scripts or a mix of languages
+Quick turnaround and iteration is important
+The visual style of text needs to match a specific font or design that is easier to get via system fonts than LaTeX
+You don't have LaTeX set up or want to avoid potential LaTeX issues
+
+Mixing both
+It's common to use both in the same scene. For instance, a title might be a Text, and below it an equation as MathTex. They can coexist. Just be mindful of the visual differences (fonts, weight). If you need them to visually match, you can actually use LaTeX for everything or use a TeX font template that matches a system font.
+Updates in the Latest Manim Version
+Manim Community is actively developed, and there have been improvements and changes affecting MathTex and Text:
+Unified Text Rendering
+The community edition (v0.17+ onward) uses Pango for all Text rendering, which greatly improved support for international text and complex scripts compared to older Manim.
+Tex/MathTex vs TexMobject
+In older versions you might see TexMobject or MathTex without certain features. Now, Tex and MathTex are separate but related. The introduction of the Tex class in Manim CE allows mixing text and math in one object easily.
+Performance improvements
+There have been bug fixes and optimizations. The caching mechanism for both LaTeX and Pango text has been refined, so the latest version should handle repeated text more efficiently.
+MarkupText and rich text
+Support for Pango markup (MarkupText) was added around v0.5 and has been stable. Recent versions might have added more tags support or better error handling for markup.
+SingleStringMathTex
+Internally, the MathTex and Tex classes are built on a lower-level class called SingleStringMathTex. This was a change to how text is parsed and grouped.
+Error messages and logging
+The latest Manim (v0.19) provides clearer error messages for LaTeX issues. If a compilation fails, it tries to output the relevant part of the LaTeX log.
+New TexTemplate system
+The TexTemplate and TexFontTemplates are relatively new. They allow users to easily swap out LaTeX templates. The TexFontTemplates (like french_cursive, comic_sans, etc.) are new conveniences that advanced users will appreciate.
