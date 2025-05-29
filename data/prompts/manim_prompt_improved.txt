@@ -505,3 +505,6 @@ Always import necessary LaTeX packages by adding `tex_template = TexTemplate()` 
 
 **Error Fix #100:**
 Always wrap MathTex expressions in proper LaTeX math mode delimiters and ensure LaTeX packages are available. Use Text() for simple expressions like "b² = a" to avoid LaTeX compilation issues.
+
+TypeError: Only values of type VMobject can be added as submobjects of VGroup, but the value Mobject (at index 0 of parameter 7) is of type Mobject. You can try adding this value 
+into a Group instead.

@@ -210,4 +210,4 @@ if __name__ == "__main__":
 
     # You can adjust max_workers based on your system capabilities
     # None = auto-detect, or specify a number like 4, 8, etc.
-    generate_all_scenes_from_script(script, max_workers=None)
+    generate_all_scenes_from_script(script, max_workers=2)
