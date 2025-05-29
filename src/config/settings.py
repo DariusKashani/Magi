@@ -1,7 +1,7 @@
 # src/config/settings.py
 
 WORDS_PER_MINUTE = 100
-WORDS_PER_CONCEPT = 250
+WORDS_PER_CONCEPT = 300
 
 SOPHISTICATION_DESCRIPTIONS = {
     1: "beginner-friendly, using simple language and basic concepts",

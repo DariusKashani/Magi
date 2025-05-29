@@ -22,7 +22,7 @@ SCRIPT_GEN_PROMPT_TEMPLATE = SCRIPT_GEN_PROMPT_PATH.read_text(encoding="utf-8")
 # LLM Client Setup
 # ---------------------------
 load_dotenv()
-llm = LLMClient(model="gpt-4", temperature=0.7, max_tokens=8000)
+llm = LLMClient(model="claude-sonnet-4-20250514", temperature=0.7, max_tokens=8000)
 
 # ---------------------------
 # Data Models
@@ -87,7 +87,7 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         sophistication_level = 2
 
     expected_words = duration_minutes * WORDS_PER_MINUTE
-    concept_count = min(20, expected_words // WORDS_PER_CONCEPT)
+    concept_count = max(20, expected_words // WORDS_PER_CONCEPT)
 
     level_desc = SOPHISTICATION_DESCRIPTIONS.get(sophistication_level)
     scene_example = SCENE_EXAMPLES.get(str(sophistication_level))
