@@ -12,9 +12,12 @@ import time
 
 # Load environment variables
 load_dotenv()
+import shutil
 
 # FFmpeg path for video concatenation
-FFMPEG_PATH = os.path.expanduser("~/bin/ffmpeg")
+FFMPEG_PATH = shutil.which("ffmpeg")
+if FFMPEG_PATH is None:
+    raise FileNotFoundError("ffmpeg not found in PATH. Please install it or add it to your PATH.")
 
 # Initialize the LLM client
 llm = LLMClient(model="claude-sonnet-4-20250514", temperature=0.3, max_tokens=8000)
