@@ -498,51 +498,119 @@ const VideoGeneratorPage = ({
 
           {generatedVideo && (
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="aspect-video bg-gray-900 relative">
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="aspect-video bg-gray-900 relative group">
+                {/* Video Player */}
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  preload="metadata"
+                  poster={generatedVideo.thumbnailUrl || undefined}
+                  onError={(e) => {
+                    console.error('Video playback error:', e);
+                    // Show fallback if video fails to load
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                >
+                  <source src={generatedVideo.downloadUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                
+                {/* Fallback display if video fails */}
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center hidden">
                   <div className="text-center text-white">
                     <Video className="w-16 h-16 mx-auto mb-4" />
-                    <p className="text-lg font-medium">Your Video is Ready!</p>
+                    <p className="text-lg font-medium">Video Ready for Download!</p>
+                    <p className="text-sm opacity-80">Playback not available</p>
                   </div>
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center">
+                
+                {/* Download overlay (appears on hover) */}
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={handleDownload}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 transition-colors"
+                    className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-all"
+                    title="Download Video"
                   >
-                    <Download className="w-8 h-8" />
+                    <Download className="w-5 h-5" />
                   </button>
+                </div>
+                
+                {/* Video loading overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center pointer-events-none">
+                  <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click to play your video!
+                  </div>
                 </div>
               </div>
               
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {generatedVideo.title}
-                </h3>
-                
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{generatedVideo.duration}</span>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {generatedVideo.title}
+                    </h3>
+                    
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{generatedVideo.duration}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Volume2 className="w-4 h-4" />
+                        <span>Audio Included</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Play className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600 font-medium">Ready to Watch</span>
+                      </div>
+                      {generatedVideo.thumbnailUrl && (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            🎨 AI Thumbnail
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Volume2 className="w-4 h-4" />
-                    <span>Audio Included</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span>Generated</span>
+                  
+                  {/* Quick actions */}
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleDownload}
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors"
+                      title="Download Video"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 
+                {/* Action buttons */}
                 <div className="flex space-x-3">
+                  <button 
+                    onClick={() => {
+                      // Restart video playback
+                      const video = document.querySelector('video');
+                      if (video) {
+                        video.currentTime = 0;
+                        video.play();
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>Watch Video</span>
+                  </button>
+                  
                   <button 
                     onClick={handleDownload}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Download Video</span>
+                    <span>Download</span>
                   </button>
+                  
                   <button 
                     onClick={() => {
                       setGeneratedVideo(null);
@@ -552,6 +620,13 @@ const VideoGeneratorPage = ({
                   >
                     Create Another
                   </button>
+                </div>
+                
+                {/* Video info */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="text-sm text-gray-500">
+                    💡 <strong>Tip:</strong> Right-click the video to save, share, or view in fullscreen
+                  </div>
                 </div>
               </div>
             </div>
