@@ -316,17 +316,31 @@ def process_single_scene(concept_data: Tuple[int, object, Path, Path]) -> Tuple[
         return (scene_index, False)
 
 # Process all scenes in a script, in parallel
-def generate_all_scenes_from_script(script: Script, max_workers: Optional[int] = None):
+def generate_all_scenes_from_script(script: Script, max_workers: Optional[int] = None, custom_output_name: Optional[str] = None):
     """
     Generate and render all scenes in parallel with automatic error correction.
+    
+    Args:
+        script: The script containing concepts to generate scenes for
+        max_workers: Maximum number of parallel workers (None for default)
+        custom_output_name: Custom name for output folders (e.g., job_id), 
+                          if None uses script.topic
     """
     if not script.concepts:
         print("❌ No concepts in script!")
         return
-        
-    topic_slug = safe_slugify(script.topic)
-    topic_code_dir = CODE_OUTPUT_DIR / topic_slug
-    topic_video_dir = VIDEO_OUTPUT_DIR / topic_slug
+    
+    # Use custom_output_name if provided, otherwise use topic slug
+    if custom_output_name:
+        folder_name = custom_output_name
+        print(f"📁 Using custom output name: {custom_output_name}")
+    else:
+        folder_name = safe_slugify(script.topic)
+        print(f"📁 Using topic-based name: {safe_slugify(script.topic)}")
+    
+    # Create output directories using the determined folder name
+    topic_code_dir = CODE_OUTPUT_DIR / folder_name
+    topic_video_dir = VIDEO_OUTPUT_DIR / folder_name
 
     topic_code_dir.mkdir(parents=True, exist_ok=True)
     topic_video_dir.mkdir(parents=True, exist_ok=True)
