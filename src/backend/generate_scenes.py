@@ -31,6 +31,9 @@ math_tex_knowledge = Path("data/math_tex_knowledge.txt").read_text(encoding="utf
 # Generate code from LLM and extract Python code block
 # -----------------------------------------------
 def generate_manim_code(prompt: str) -> str:
+    """
+    FINAL FIXED version that handles all possible LLM output formats
+    """
     system_prompt = f"""
 This is the full breakdown on how to use manim:
 {manim_knowledge}
@@ -41,90 +44,110 @@ This is the full breakdown on how to use math_tex::
 This is the task we would like you to accomplish with the given information:
 {manim_prompt_template}
 """
-    raw_output = llm.chat(system_prompt, prompt)
-    match = re.search(r"'''(.*?)'''", raw_output, flags=re.DOTALL)
-    return match.group(1).strip() if match else ""
-
-def fix_manim_code(original_code: str, error_message: str, scene_description: str) -> str:
-    """
-    Ask LLM to fix broken Manim code based on error message
-    """
-    system_prompt = f"""
-You are a Manim expert. Fix the broken Manim code based on the error message.
-
-Manim knowledge:
-{manim_knowledge}
-
-Math tex knowledge:
-{math_tex_knowledge}
-
-Original scene requirements:
-{scene_description}
-
-IMPORTANT: Always return the complete fixed Python code wrapped in triple backticks (```).
-"""
     
-    # Truncate very long error messages but keep the important parts
-    if len(error_message) > 2000:
-        lines = error_message.split('\n')
-        # Keep first 10 and last 10 lines of error
-        if len(lines) > 20:
-            truncated_lines = lines[:10] + ['... (truncated) ...'] + lines[-10:]
-            error_message = '\n'.join(truncated_lines)
-    
-    user_prompt = f"""
-The following Manim code failed to render with this error:
-
-ERROR MESSAGE:
-{error_message}
-
-BROKEN CODE:
-```python
-{original_code}
-```
-
-Please fix the code to resolve this error while maintaining the original scene requirements. 
-
-Common Manim issues to check:
-- Import statements (missing imports)
-- Class names and inheritance
-- Method calls and syntax
-- Mathematical notation in MathTex
-- Animation timing and parameters
-
-Return ONLY the corrected Python code wrapped in triple backticks (```).
-"""
-    
-    print(f"🔧 Asking LLM to fix error...")
+    print(f"🔧 DEBUG: Generating Manim code...")
+    print(f"🔧 DEBUG: Prompt preview: {prompt[:100]}...")
     
     try:
-        raw_output = llm.chat(system_prompt, user_prompt)
+        # Make the LLM call
+        raw_output = llm.chat(system_prompt, prompt)
         
-        # Try multiple patterns to extract code
+        print(f"🔧 DEBUG: LLM response received ({len(raw_output)} chars)")
+        print(f"🔧 DEBUG: Response preview: {raw_output[:200]}...")
+        print(f"🔧 DEBUG: Response end: ...{raw_output[-200:]}")
+        
+        # Try multiple extraction patterns in order of likelihood
         patterns = [
-            r"```python\s*(.*?)\s*```",
-            r"```\s*(.*?)\s*```", 
-            r"`{3}python\s*(.*?)\s*`{3}",
-            r"`{3}\s*(.*?)\s*`{3}"
+            # Pattern 1: Triple single quotes (expected by prompt)
+            (r"'''(.*?)'''", "triple single quotes"),
+            
+            # Pattern 2: Markdown python code blocks
+            (r"```python\s*(.*?)\s*```", "markdown python"),
+            
+            # Pattern 3: Markdown code blocks without language
+            (r"```\s*(.*?)\s*```", "markdown generic"),
+            
+            # Pattern 4: Any content between code markers
+            (r"`{3}python\s*(.*?)\s*`{3}", "backtick python"),
+            (r"`{3}\s*(.*?)\s*`{3}", "backtick generic"),
         ]
         
-        fixed_code = ""
-        for pattern in patterns:
+        extracted_code = ""
+        used_pattern = None
+        
+        for pattern, description in patterns:
+            print(f"🔧 DEBUG: Trying {description} pattern...")
             match = re.search(pattern, raw_output, flags=re.DOTALL)
             if match:
-                fixed_code = match.group(1).strip()
+                extracted_code = match.group(1).strip()
+                used_pattern = description
+                print(f"✅ DEBUG: {description} pattern matched! ({len(extracted_code)} chars)")
                 break
+            else:
+                print(f"❌ DEBUG: {description} pattern - no match")
         
-        if fixed_code:
-            print(f"✅ LLM provided fixed code ({len(fixed_code)} chars)")
+        # If no patterns worked, try manual extraction
+        if not extracted_code:
+            print(f"🔧 DEBUG: No patterns matched, trying manual extraction...")
+            
+            # Look for Python code indicators
+            code_indicators = [
+                "from manim import",
+                "import manim",
+                "class ",
+                "def construct("
+            ]
+            
+            for indicator in code_indicators:
+                if indicator in raw_output:
+                    print(f"🔧 DEBUG: Found '{indicator}' - attempting extraction")
+                    start_pos = raw_output.find(indicator)
+                    
+                    # Extract from this point to the end, or until we find a clear endpoint
+                    potential_code = raw_output[start_pos:].strip()
+                    
+                    # Try to find a reasonable endpoint
+                    endpoints = ["\n\n#", "\n\nNote:", "\n\nExplanation:", "```", "'''"]
+                    for endpoint in endpoints:
+                        if endpoint in potential_code:
+                            end_pos = potential_code.find(endpoint)
+                            potential_code = potential_code[:end_pos].strip()
+                            break
+                    
+                    if len(potential_code) > 50:  # Reasonable minimum for Python code
+                        extracted_code = potential_code
+                        used_pattern = f"manual extraction from '{indicator}'"
+                        print(f"🔧 DEBUG: Manual extraction successful ({len(extracted_code)} chars)")
+                        break
+        
+        # Final validation
+        if extracted_code:
+            print(f"✅ DEBUG: Successfully extracted code using {used_pattern}")
+            print(f"🔧 DEBUG: Code preview: {extracted_code[:300]}...")
+            
+            # Quick validation
+            if "class" in extracted_code and "Scene" in extracted_code:
+                print(f"✅ DEBUG: Code appears valid (contains class and Scene)")
+            else:
+                print(f"⚠️ DEBUG: Code might be incomplete (missing class/Scene)")
+                
+            # Check for common issues
+            if "from manim import" not in extracted_code and "import manim" not in extracted_code:
+                print(f"⚠️ DEBUG: Code missing manim import - adding it")
+                extracted_code = "from manim import *\n" + extracted_code
+                
         else:
-            print(f"❌ LLM failed to provide fixed code")
-            print(f"Raw LLM output (first 500 chars): {raw_output[:500]}")
+            print(f"❌ DEBUG: COMPLETE FAILURE - No code could be extracted!")
+            print(f"🔧 DEBUG: Full LLM response:")
+            print(f"{raw_output}")
+            print(f"🔧 DEBUG: This indicates a fundamental issue with the LLM response format")
         
-        return fixed_code
+        return extracted_code
         
     except Exception as e:
-        print(f"❌ Error calling LLM for fix: {str(e)}")
+        print(f"❌ DEBUG: Exception in generate_manim_code: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return ""
 
 # Slugify string for safe folder names
@@ -132,6 +155,8 @@ def safe_slugify(text: str) -> str:
     text = text.lower()
     text = re.sub(r'[^a-z0-9]+', '-', text)
     return text.strip('-')
+
+
 
 # Extract class name from Manim code
 def extract_scene_class(code: str) -> str:
@@ -256,6 +281,87 @@ def render_code(py_file: Path, scene_name: str, output_dir: Path) -> Tuple[bool,
     except subprocess.TimeoutExpired:
         print(f"❌ Render timed out for {py_file.name}")
         return False, "Render process timed out after 5 minutes"
+def fix_manim_code(original_code: str, error_message: str, scene_description: str) -> str:
+    """
+    Ask LLM to fix broken Manim code based on error message
+    """
+    system_prompt = f"""
+You are a Manim expert. Fix the broken Manim code based on the error message.
+
+Manim knowledge:
+{manim_knowledge}
+
+Math tex knowledge:
+{math_tex_knowledge}
+
+Original scene requirements:
+{scene_description}
+
+IMPORTANT: Always return the complete fixed Python code wrapped in triple backticks (```).
+"""
+    
+    # Truncate very long error messages but keep the important parts
+    if len(error_message) > 2000:
+        lines = error_message.split('\n')
+        # Keep first 10 and last 10 lines of error
+        if len(lines) > 20:
+            truncated_lines = lines[:10] + ['... (truncated) ...'] + lines[-10:]
+            error_message = '\n'.join(truncated_lines)
+    
+    user_prompt = f"""
+The following Manim code failed to render with this error:
+
+ERROR MESSAGE:
+{error_message}
+
+BROKEN CODE:
+```python
+{original_code}
+```
+
+Please fix the code to resolve this error while maintaining the original scene requirements. 
+
+Common Manim issues to check:
+- Import statements (missing imports)
+- Class names and inheritance
+- Method calls and syntax
+- Mathematical notation in MathTex
+- Animation timing and parameters
+
+Return ONLY the corrected Python code wrapped in triple backticks (```).
+"""
+    
+    print(f"🔧 Asking LLM to fix error...")
+    
+    try:
+        raw_output = llm.chat(system_prompt, user_prompt)
+        
+        # Try multiple patterns to extract code
+        patterns = [
+            r"```python\s*(.*?)\s*```",
+            r"```\s*(.*?)\s*```", 
+            r"`{3}python\s*(.*?)\s*`{3}",
+            r"`{3}\s*(.*?)\s*`{3}"
+        ]
+        
+        fixed_code = ""
+        for pattern in patterns:
+            match = re.search(pattern, raw_output, flags=re.DOTALL)
+            if match:
+                fixed_code = match.group(1).strip()
+                break
+        
+        if fixed_code:
+            print(f"✅ LLM provided fixed code ({len(fixed_code)} chars)")
+        else:
+            print(f"❌ LLM failed to provide fixed code")
+            print(f"Raw LLM output (first 500 chars): {raw_output[:500]}")
+        
+        return fixed_code
+        
+    except Exception as e:
+        print(f"❌ Error calling LLM for fix: {str(e)}")
+        return ""
 
 # Process a single scene with automatic error correction
 def process_single_scene(concept_data: Tuple[int, object, Path, Path]) -> Tuple[int, bool]:
@@ -316,31 +422,17 @@ def process_single_scene(concept_data: Tuple[int, object, Path, Path]) -> Tuple[
         return (scene_index, False)
 
 # Process all scenes in a script, in parallel
-def generate_all_scenes_from_script(script: Script, max_workers: Optional[int] = None, custom_output_name: Optional[str] = None):
+def generate_all_scenes_from_script(script: Script, max_workers: Optional[int] = None):
     """
     Generate and render all scenes in parallel with automatic error correction.
-    
-    Args:
-        script: The script containing concepts to generate scenes for
-        max_workers: Maximum number of parallel workers (None for default)
-        custom_output_name: Custom name for output folders (e.g., job_id), 
-                          if None uses script.topic
     """
     if not script.concepts:
         print("❌ No concepts in script!")
         return
-    
-    # Use custom_output_name if provided, otherwise use topic slug
-    if custom_output_name:
-        folder_name = custom_output_name
-        print(f"📁 Using custom output name: {custom_output_name}")
-    else:
-        folder_name = safe_slugify(script.topic)
-        print(f"📁 Using topic-based name: {safe_slugify(script.topic)}")
-    
-    # Create output directories using the determined folder name
-    topic_code_dir = CODE_OUTPUT_DIR / folder_name
-    topic_video_dir = VIDEO_OUTPUT_DIR / folder_name
+        
+    topic_slug = safe_slugify(script.topic)
+    topic_code_dir = CODE_OUTPUT_DIR / topic_slug
+    topic_video_dir = VIDEO_OUTPUT_DIR / topic_slug
 
     topic_code_dir.mkdir(parents=True, exist_ok=True)
     topic_video_dir.mkdir(parents=True, exist_ok=True)

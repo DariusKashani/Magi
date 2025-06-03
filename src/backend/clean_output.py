@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import shutil
 from pathlib import Path
-from config.paths import VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR, SCRIPT_OUTPUT_DIR, CODE_OUTPUT_DIR
+from config.paths import VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR, CODE_OUTPUT_DIR
 
 # Define directories to clean
 dirs_to_clean = [
     VIDEO_OUTPUT_DIR,
     AUDIO_OUTPUT_DIR,
-    SCRIPT_OUTPUT_DIR,
     CODE_OUTPUT_DIR,
 ]
 

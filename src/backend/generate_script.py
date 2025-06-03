@@ -4,7 +4,7 @@ import re
 import yaml
 from dataclasses import dataclass
 from typing import List
-
+import json
 # ---------------------------
 # Settings and Config
 # ---------------------------
@@ -69,23 +69,66 @@ class Script:
         )
 
 # ---------------------------
-# Utility Functions
-# ---------------------------
-# ---------------------------
-# Utility Functions
+# FIXED Utility Functions
 # ---------------------------
 def extract_concepts(script: str) -> List[ConceptSegment]:
-    # More flexible regex pattern to match the actual LLM output
-    pattern = r'\[NEW CONCEPT\]\s*(.*?)\s*\[END CONCEPT\|\| Scene description:\s*(.*?)\]\](?=\s*\[NEW CONCEPT\]|\s*$)'
-    matches = re.findall(pattern, script, flags=re.DOTALL)
+    """
+    FIXED version that properly handles the actual LLM output format
+    """
+    print(f"🔍 DEBUG: Analyzing script structure...")
+    print(f"🔍 DEBUG: Script length: {len(script)} characters")
+    print(f"🔍 DEBUG: First 200 chars: {script[:200]}")
     
-    print(f"🔍 DEBUG: Regex found {len(matches)} matches")
+    segments = []
     
-    segments = [ConceptSegment(n.strip(), s.strip()) for n, s in matches]
+    # The LLM generates the correct format, but the regex was wrong
+    # Manual parsing is more reliable than complex regex
+    
+    # Split by [NEW CONCEPT] markers
+    concept_blocks = script.split('[NEW CONCEPT]')[1:]  # Skip first empty part
+    
+    print(f"🔍 DEBUG: Found {len(concept_blocks)} concept blocks")
+    
+    for i, block in enumerate(concept_blocks, 1):
+        block = block.strip()
+        if not block:
+            print(f"🔧 Concept {i} is empty, skipping")
+            continue
+            
+        print(f"🔧 Processing concept {i}: {block[:100]}...")
+        
+        # Look for the END CONCEPT marker
+        if '[END CONCEPT|| Scene description:' in block:
+            # Split into narration and scene description
+            parts = block.split('[END CONCEPT|| Scene description:', 1)
+            if len(parts) == 2:
+                narration = parts[0].strip()
+                scene_description = parts[1].strip()
+                
+                # Clean up scene description (remove any trailing brackets)
+                scene_description = scene_description.rstrip(']')
+                
+                segments.append(ConceptSegment(narration, scene_description))
+                print(f"✅ Successfully parsed concept {i}")
+            else:
+                print(f"❌ Failed to split concept {i} properly")
+        else:
+            print(f"❌ No END CONCEPT marker found in concept {i}")
+            # Create a fallback with default scene description
+            narration = block.strip()
+            default_scene = f"Show visual representation of: {narration[:100]}..."
+            segments.append(ConceptSegment(narration, default_scene))
+            print(f"🔧 Created concept {i} with default scene description")
+    
+    print(f"🔍 DEBUG: Final result: {len(segments)} segments extracted")
+    for i, seg in enumerate(segments):
+        word_count = len(seg.narration.split())
+        print(f"  Segment {i+1}: {word_count} words narration, {len(seg.scene_description)} chars description")
+    
     return segments
 
 # ---------------------------
-# Script Generation
+# Script Generation (unchanged)
 # ---------------------------
 def generate_script(topic: str, duration_minutes: int = 5, sophistication_level: int = 2) -> Script:
     
@@ -107,7 +150,7 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         duration_minutes=duration_minutes,
         expected_words=expected_words,
         scene_count=scene_count,
-        words_per_scene=words_per_scene,  # ADD THIS LINE
+        words_per_scene=words_per_scene,
         scene_example=scene_example
     )
 
@@ -126,6 +169,7 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         print(f"🔍 DEBUG: Requested {scene_count} scenes with ~{words_per_scene} words each")
         print(f"🔍 DEBUG: Target: {expected_words} words = {duration_minutes} minutes")
         
+        # Use the FIXED extract_concepts function
         segments = extract_concepts(full_script)
         print(f"🔍 DEBUG: Extracted {len(segments)} segments")
         
@@ -139,7 +183,7 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
                 word_count = len(seg.narration.split())
                 print(f"  Scene {i}: {word_count} words")
         else:
-            print("🔍 DEBUG: No segments extracted - check regex pattern!")
+            print("🔍 DEBUG: No segments extracted - this should not happen with the fix!")
             print(f"🔍 DEBUG: Raw script preview:\n{full_script[:500]}...")
 
         return Script(
@@ -153,7 +197,7 @@ def generate_script(topic: str, duration_minutes: int = 5, sophistication_level:
         raise RuntimeError(f"Script generation failed: {str(e)}")
 
 # ---------------------------
-# CLI Entry Point
+# CLI Entry Point (unchanged)
 # ---------------------------
 def main():
     topic = input("What educational question do you have? ")
