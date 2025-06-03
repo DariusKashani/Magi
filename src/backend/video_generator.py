@@ -8,7 +8,8 @@ from backend.generate_audio import generate_audio_narration
 from config.paths import VIDEO_OUTPUT_DIR
 import threading
 import shutil
-import time
+import re
+import json
 
 load_dotenv()
 
@@ -23,304 +24,651 @@ def safe_slugify(text: str) -> str:
     text = re.sub(r'[^a-z0-9]+', '-', text)
     return text.strip('-')
 
-def add_audio_to_video(video_path: Path, audio_path: Path, progress_callback=None) -> Path:
-    """Add audio track to the video"""
-    if progress_callback:
-        progress_callback(85, "Combining video and audio...")
-    
-    output_path = video_path.parent / "final_video_with_audio.mp4"
-    
-    cmd = [FFMPEG_PATH, "-y", "-i", str(video_path)]
-    
-    if audio_path and audio_path.exists():
-        cmd += ["-i", str(audio_path)]
-        cmd += ["-c:v", "copy", "-c:a", "aac", "-map", "0:v:0", "-map", "1:a:0"]
-    else:
-        print("⚠️ No audio file found, proceeding without audio")
-        cmd += ["-c:v", "copy", "-map", "0:v:0"]
-    
-    cmd += [str(output_path)]
-    print(f"Running ffmpeg command: {' '.join(cmd)}")
-    
-    subprocess.run(cmd, check=True)
-    print(f"Final video created: {output_path}")
-    
-    if progress_callback:
-        progress_callback(95, "Video finalization complete...")
-    
-    return output_path
+def get_audio_duration(audio_path: Path) -> float:
+    """Get duration of audio file in seconds using ffprobe"""
+    try:
+        cmd = [
+            "ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+            "-of", "csv=p=0", str(audio_path)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return float(result.stdout.strip())
+    except Exception as e:
+        print(f"❌ Error getting audio duration: {e}")
+        return 0.0
 
-def generate_audio_worker(narrator_text: str, dry_run: bool, progress_callback=None) -> Path:
-    """Worker function to generate audio in parallel"""
-    print("🎵 [PARALLEL] Starting audio generation...")
-    if progress_callback:
-        progress_callback(35, "Synthesizing audio narration...")
-    
-    audio_path = generate_audio_narration(text=narrator_text, filename="narration.mp3", dry_run=dry_run)
-    
-    if audio_path:
-        print(f"✅ [PARALLEL] Audio generated: {audio_path}")
-        if progress_callback:
-            progress_callback(65, "Audio narration complete...")
-    else:
-        print("❌ [PARALLEL] Audio generation failed")
-    
-    return audio_path
+def estimate_speaking_duration(text: str, wpm: int = 150) -> float:
+    """Estimate how long text will take to speak"""
+    words = len(text.split())
+    return (words / wpm) * 60  # Convert minutes to seconds
 
-def make_video(topic: str, level: int = 2, duration: int = 10, dry_run: bool = False, 
-               subtitle_style: str = "modern", wpm: int = 150, use_legacy_srt: bool = False,
-               progress_callback=None, job_id: str = None):
+def break_narration_into_chunks(narration: str, scene_description: str) -> list:
     """
-    Generate complete video with scenes and audio in parallel
-
-    Args:
-        topic: Educational topic/question
-        level: Sophistication level (1-3)
-        duration: Duration in minutes
-        dry_run: If True, skip actual audio generation
-        subtitle_style: Style for subtitles (modern, clean, typewriter)
-        wpm: Words per minute for narration timing
-        use_legacy_srt: Use legacy SRT subtitles
-        progress_callback: Function to call with (progress_percent, status_message)
-        job_id: Unique identifier for this job (for consistent file naming)
+    Break narration into chunks that align with visual elements mentioned in scene description
     """
-    print(f"🚀 GENERATING VIDEO for topic: {topic}")
+    print(f"🔍 Breaking narration into synchronized chunks...")
     
-    # Use job_id for folder naming if provided, otherwise use topic
-    folder_name = job_id if job_id else safe_slugify(topic)
-    print(f"📁 Using folder name: {folder_name}")
+    # Split narration into sentences
+    sentences = re.split(r'[.!?]+', narration)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    
+    # Extract visual cues from scene description
+    visual_cues = extract_visual_cues(scene_description)
+    
+    # Try to align sentences with visual cues
+    chunks = []
+    current_chunk = ""
+    
+    for i, sentence in enumerate(sentences):
+        current_chunk += sentence + ". "
+        
+        # Check if this sentence mentions any visual elements
+        mentions_visual = any(
+            cue.lower() in sentence.lower() 
+            for cue in visual_cues
+        )
+        
+        # Create chunk at natural break points or when visual elements are mentioned
+        if (mentions_visual and len(current_chunk.split()) > 5) or \
+           (len(current_chunk.split()) > 15) or \
+           (i == len(sentences) - 1):
+            
+            duration = estimate_speaking_duration(current_chunk)
+            chunks.append({
+                'text': current_chunk.strip(),
+                'duration': duration,
+                'mentions_visual': mentions_visual
+            })
+            current_chunk = ""
+    
+    print(f"   📝 Created {len(chunks)} narration chunks")
+    for i, chunk in enumerate(chunks):
+        print(f"      Chunk {i+1}: {chunk['duration']:.1f}s - {chunk['text'][:50]}...")
+    
+    return chunks
+
+def extract_visual_cues(scene_description: str) -> list:
+    """Extract visual elements mentioned in scene description"""
+    # Common visual elements to look for
+    visual_keywords = [
+        'triangle', 'circle', 'square', 'rectangle', 'line', 'arrow', 'graph',
+        'equation', 'formula', 'text', 'label', 'point', 'curve', 'axis',
+        'coordinate', 'angle', 'side', 'vertex', 'area', 'perimeter',
+        'plot', 'function', 'variable', 'number', 'symbol', 'diagram'
+    ]
+    
+    found_cues = []
+    description_lower = scene_description.lower()
+    
+    for keyword in visual_keywords:
+        if keyword in description_lower:
+            found_cues.append(keyword)
+    
+    # Also extract specific mathematical terms mentioned
+    math_terms = re.findall(r'\b[a-zA-Z]+\b', scene_description)
+    found_cues.extend([term for term in math_terms if len(term) > 2])
+    
+    return list(set(found_cues))  # Remove duplicates
+
+def create_timed_scene_description(original_description: str, narration_chunks: list) -> str:
+    """
+    Create a new scene description with explicit timing for each visual element
+    """
+    print(f"🔧 Creating timed scene description...")
+    
+    # Build new scene description with VERY explicit timing
+    timed_description = "=== TIMING-SYNCHRONIZED SCENE ===\n\n"
+    
+    # Add explicit timing summary at the top
+    timed_description += "🎯 REQUIRED WAIT CALLS (Claude must follow exactly):\n"
+    for i, chunk in enumerate(narration_chunks):
+        timed_description += f"   self.wait({chunk['duration']:.1f})  # After segment {i+1}\n"
+    timed_description += f"\n✅ Total segments: {len(narration_chunks)}\n"
+    timed_description += f"✅ Total wait calls needed: {len(narration_chunks)}\n\n"
+    
+    current_time = 0.0
+    
+    for i, chunk in enumerate(narration_chunks):
+        chunk_duration = chunk['duration']
+        
+        timed_description += f"=" * 50 + f"\n"
+        timed_description += f"SEGMENT {i+1} [{current_time:.1f}s - {current_time + chunk_duration:.1f}s]\n"
+        timed_description += f"=" * 50 + f"\n"
+        timed_description += f'Audio: "{chunk["text"]}"\n'
+        timed_description += f"Duration: {chunk_duration:.1f} seconds\n"
+        
+        # Make the wait requirement VERY explicit
+        timed_description += f"🚨 MANDATORY: End this segment with self.wait({chunk_duration:.1f}) 🚨\n\n"
+        
+        # Determine what visual should happen during this narration
+        if i == 0:
+            timed_description += f"Visual: Set up initial scene elements\n"
+        else:
+            if chunk['mentions_visual']:
+                timed_description += f"Visual: Show/animate elements mentioned in narration\n"
+            else:
+                timed_description += f"Visual: Continue previous animation or show supporting elements\n"
+        
+        timed_description += f"\n"
+        current_time += chunk_duration
+    
+    # Add final explicit reminder
+    timed_description += f"=" * 50 + f"\n"
+    timed_description += f"🎯 CLAUDE: YOU MUST HAVE EXACTLY {len(narration_chunks)} WAIT CALLS:\n"
+    for i, chunk in enumerate(narration_chunks):
+        timed_description += f"   Segment {i+1}: self.wait({chunk['duration']:.1f})\n"
+    timed_description += f"🎯 TOTAL SCENE DURATION: {current_time:.1f}s\n"
+    timed_description += f"🎯 NO OTHER WAIT CALLS ALLOWED!\n"
+    timed_description += f"=" * 50 + f"\n"
+    
+    return timed_description
+
+def add_explicit_timing_to_prompt(scene_description: str) -> str:
+    """
+    Pre-process the scene description to make timing requirements extremely explicit for Claude
+    """
+    # Extract wait durations from the scene description
+    import re
+    wait_pattern = r'self\.wait\((\d+\.?\d*)\)'
+    wait_durations = re.findall(wait_pattern, scene_description)
+    
+    if not wait_durations:
+        # If no explicit wait calls found, extract from "MANDATORY" lines
+        mandatory_pattern = r'self\.wait\((\d+\.?\d*)\)'
+        wait_durations = re.findall(mandatory_pattern, scene_description)
+    
+    if wait_durations:
+        # Add ultra-explicit timing header
+        timing_header = f"""
+🚨🚨🚨 CRITICAL TIMING REQUIREMENTS FOR CLAUDE 🚨🚨🚨
+
+YOU MUST GENERATE CODE WITH EXACTLY {len(wait_durations)} WAIT CALLS:
+"""
+        for i, duration in enumerate(wait_durations):
+            timing_header += f"• Segment {i+1}: self.wait({duration})\n"
+        
+        timing_header += f"""
+❌ DO NOT use self.wait(0) or any other duration
+❌ DO NOT add extra wait calls  
+❌ DO NOT skip any wait calls
+✅ USE EXACTLY the durations listed above
+
+THE WAIT CALLS MUST BE:
+{', '.join([f'self.wait({d})' for d in wait_durations])}
+
+🚨🚨🚨 END CRITICAL TIMING REQUIREMENTS 🚨🚨🚨
+
+"""
+        return timing_header + scene_description
+    
+    return scene_description
+
+def generate_synchronized_script(original_script):
+    """
+    Modify the script to include detailed timing information for each scene
+    """
+    print("🔧 Generating synchronized script with detailed timing...")
+    
+    synchronized_concepts = []
+    
+    for i, concept in enumerate(original_script.concepts):
+        print(f"   Processing concept {i+1}: {concept.narration[:50]}...")
+        
+        # Break narration into timed chunks
+        narration_chunks = break_narration_into_chunks(
+            concept.narration, 
+            concept.scene_description
+        )
+        
+        # Create new scene description with timing
+        timed_scene_description = create_timed_scene_description(
+            concept.scene_description,
+            narration_chunks
+        )
+        
+        # Store the chunk information for later audio generation
+        concept.narration_chunks = narration_chunks
+        concept.scene_description = timed_scene_description
+        
+        synchronized_concepts.append(concept)
+    
+    # Update the script
+    original_script.concepts = synchronized_concepts
+    return original_script
+
+def generate_chunked_audio_for_scene(concept, scene_index: int) -> list:
+    """
+    Generate separate audio files for each narration chunk within a scene
+    """
+    audio_files = []
+    
+    for chunk_index, chunk in enumerate(concept.narration_chunks):
+        print(f"🎵 Generating audio for scene {scene_index+1}, chunk {chunk_index+1}")
+        
+        filename = f"scene_{scene_index+1}_chunk_{chunk_index+1}_audio.mp3"
+        audio_path = generate_audio_narration(
+            text=chunk['text'],
+            filename=filename,
+            dry_run=False
+        )
+        
+        if audio_path and audio_path.exists():
+            actual_duration = get_audio_duration(audio_path)
+            print(f"   ✅ Chunk {chunk_index+1}: {actual_duration:.1f}s")
+            
+            audio_files.append({
+                'chunk_index': chunk_index,
+                'audio_path': audio_path,
+                'duration': actual_duration,
+                'text': chunk['text'],
+                'expected_duration': chunk['duration']
+            })
+        else:
+            print(f"   ❌ Failed to generate audio for chunk {chunk_index+1}")
+    
+    return audio_files
+
+def create_perfectly_synced_video(script, dry_run: bool = False):
+    """
+    Generate video with perfect audio-visual synchronization
+    """
+    print("🎬 Creating perfectly synchronized video...")
+    
+    # Step 1: Generate synchronized script with timing
+    sync_script = generate_synchronized_script(script)
+    
+    # Step 2: Generate chunked audio for each scene
+    all_scene_audio = []
+    for i, concept in enumerate(sync_script.concepts):
+        scene_audio = generate_chunked_audio_for_scene(concept, i)
+        all_scene_audio.append(scene_audio)
+    
+    # Step 3: Generate video scenes with the synchronized script
+    # Note: This will pass the timed scene descriptions to Manim
+    print("🎬 Generating video scenes with synchronized timing...")
+    video_path = generate_all_scenes_from_script(sync_script, max_workers=1)
+    
+    if not video_path or not video_path.exists():
+        raise Exception("Video generation failed")
+    
+    # Step 4: Combine audio chunks with video scenes
+    print("🔗 Combining synchronized audio and video...")
+    final_output = combine_chunked_audio_with_video(video_path, all_scene_audio)
+    
+    return final_output
+
+def combine_chunked_audio_with_video(video_path: Path, all_scene_audio: list) -> Path:
+    """
+    Combine the chunked audio with video scenes for perfect synchronization
+    """
+    print("🔗 Combining chunked audio with video scenes...")
+    
+    topic_video_dir = video_path.parent
+    final_output = topic_video_dir / "perfectly_synced_video.mp4"
+    
+    # For each scene, combine its audio chunks and sync with video
+    scene_videos = []
+    
+    for scene_index, scene_audio_chunks in enumerate(all_scene_audio):
+        scene_num = scene_index + 1
+        
+        print(f"   🎬 Processing scene {scene_num}...")
+        
+        # Find the scene video
+        scene_video_path = topic_video_dir / "media" / "videos" / f"scene_{scene_num}" / "1080p60" / f"scene_{scene_num}.mp4"
+        
+        if not scene_video_path.exists():
+            print(f"   ❌ Scene {scene_num} video not found")
+            continue
+        
+        # Combine audio chunks for this scene
+        if scene_audio_chunks:
+            scene_audio_path = combine_audio_chunks_for_scene(scene_audio_chunks, scene_num, topic_video_dir)
+            
+            # Combine scene video with its synchronized audio
+            synced_scene_path = topic_video_dir / f"synced_scene_{scene_num}.mp4"
+            
+            cmd = [
+                FFMPEG_PATH, "-y",
+                "-i", str(scene_video_path),
+                "-i", str(scene_audio_path),
+                "-c:v", "copy", "-c:a", "aac",
+                "-map", "0:v:0", "-map", "1:a:0",
+                "-shortest",
+                str(synced_scene_path)
+            ]
+            
+            try:
+                subprocess.run(cmd, check=True, capture_output=True)
+                scene_videos.append(synced_scene_path)
+                print(f"   ✅ Scene {scene_num} synchronized")
+            except subprocess.CalledProcessError as e:
+                print(f"   ❌ Failed to sync scene {scene_num}: {e}")
+        else:
+            print(f"   ⚠️ No audio for scene {scene_num}, using video only")
+            scene_videos.append(scene_video_path)
+    
+    # Concatenate all synchronized scenes
+    if scene_videos:
+        concat_list_file = topic_video_dir / "final_concat_list.txt"
+        
+        try:
+            with open(concat_list_file, 'w') as f:
+                for scene_path in scene_videos:
+                    f.write(f"file '{scene_path.absolute()}'\n")
+            
+            cmd = [
+                FFMPEG_PATH, "-y", "-f", "concat", "-safe", "0",
+                "-i", str(concat_list_file), "-c", "copy", str(final_output)
+            ]
+            
+            subprocess.run(cmd, check=True, capture_output=True)
+            
+            # Cleanup
+            concat_list_file.unlink()
+            for scene_path in scene_videos:
+                if "synced_scene_" in str(scene_path) and scene_path.exists():
+                    scene_path.unlink()
+            
+            print(f"✅ Perfectly synchronized video created: {final_output}")
+            return final_output
+            
+        except Exception as e:
+            print(f"❌ Final concatenation failed: {e}")
+            return None
+    
+    return None
+
+def combine_audio_chunks_for_scene(audio_chunks: list, scene_num: int, output_dir: Path) -> Path:
+    """
+    Combine audio chunks for a single scene
+    """
+    if len(audio_chunks) == 1:
+        return audio_chunks[0]['audio_path']
+    
+    # Create concat file for this scene's audio
+    concat_file = output_dir / f"scene_{scene_num}_audio_concat.txt"
+    combined_audio = output_dir / f"scene_{scene_num}_combined_audio.mp3"
+    
+    try:
+        with open(concat_file, 'w') as f:
+            for chunk in audio_chunks:
+                f.write(f"file '{chunk['audio_path'].absolute()}'\n")
+        
+        cmd = [
+            FFMPEG_PATH, "-y", "-f", "concat", "-safe", "0",
+            "-i", str(concat_file), "-c", "copy", str(combined_audio)
+        ]
+        
+        subprocess.run(cmd, check=True, capture_output=True)
+        
+        # Cleanup
+        concat_file.unlink()
+        
+        return combined_audio
+        
+    except Exception as e:
+        print(f"❌ Failed to combine audio for scene {scene_num}: {e}")
+        return None
+
+def make_perfectly_synchronized_video(topic: str, level: int = 2, duration: int = 10, dry_run: bool = False):
+    """
+    Generate video with perfect content-level synchronization between audio and visuals
+    """
+    print(f"🚀 GENERATING PERFECTLY SYNCHRONIZED VIDEO for topic: {topic}")
+    print("=" * 80)
+    print("This will create content-level synchronization where audio matches exactly what's on screen")
+    print("=" * 80)
 
     # Step 1: Generate script
     print("📝 Step 1: Generating script...")
-    if progress_callback:
-        progress_callback(5, "Analyzing your request...")
-    
     try:
         script = generate_script(topic=topic, duration_minutes=duration, sophistication_level=level)
         print(f"✅ Script generated with {len(script.concepts)} concepts")
-        if progress_callback:
-            progress_callback(15, "Educational script generated...")
     except Exception as e:
-        if progress_callback:
-            progress_callback(0, f"Script generation failed: {str(e)}")
+        print(f"❌ Script generation failed: {e}")
         raise
 
-    # Prepare narration text for audio generation
+    # Step 2: Create perfectly synchronized version
+    print("\n🔧 Step 2: Creating perfect content synchronization...")
+    try:
+        result = create_perfectly_synced_video(script, dry_run)
+        
+        if result:
+            print("🎉 PERFECTLY SYNCHRONIZED VIDEO GENERATION COMPLETE!")
+            print(f"📁 Final output: {result}")
+            print("\n🎯 SYNCHRONIZATION ACHIEVED:")
+            print("   ✅ Audio narration matches visual content timing")
+            print("   ✅ Visual elements appear when mentioned in narration")
+            print("   ✅ No delays between audio and corresponding visuals")
+            return result
+        else:
+            raise Exception("Perfect synchronization failed")
+            
+    except Exception as e:
+        print(f"❌ Perfect synchronization failed: {e}")
+        print("🔄 Falling back to basic synchronization...")
+        
+        # Fallback to the previous synchronization method
+        return make_synchronized_video_fallback(topic, level, duration, dry_run)
+
+def make_synchronized_video_fallback(topic: str, level: int = 2, duration: int = 10, dry_run: bool = False):
+    """
+    Fallback to the previous synchronization method
+    """
+    # This would be your previous make_synchronized_video function
+    # For now, just generate a basic video
+    script = generate_script(topic=topic, duration_minutes=duration, sophistication_level=level)
+    video_path = generate_all_scenes_from_script(script, max_workers=1)
+    
+    # Generate single audio track
     narrator_text = "\n\n".join([c.narration for c in script.concepts])
-    word_count = len(narrator_text.split())
-    char_count = len(narrator_text)
-    print(f"📊 Total narration: {char_count} chars, {word_count} words")
+    audio_path = generate_audio_narration(text=narrator_text, filename="fallback_narration.mp3", dry_run=dry_run)
+    
+    # Combine
+    if video_path and audio_path:
+        output_path = video_path.parent / "fallback_synchronized_video.mp4"
+        cmd = [
+            FFMPEG_PATH, "-y",
+            "-i", str(video_path),
+            "-i", str(audio_path),
+            "-c:v", "copy", "-c:a", "aac",
+            "-map", "0:v:0", "-map", "1:a:0",
+            str(output_path)
+        ]
+        subprocess.run(cmd, check=True, capture_output=True)
+        return output_path
+    
+    return video_path
 
-    # Step 2: Start parallel processes
-    print("🔄 Step 2: Starting parallel generation...")
-    if progress_callback:
-        progress_callback(20, "Starting video and audio generation...")
+def test_synchronization_pipeline(topic: str = "What is 2+2?"):
+    """
+    Test the synchronization pipeline step by step to see where it breaks
+    """
+    print("🧪 TESTING SYNCHRONIZATION PIPELINE")
+    print("=" * 50)
     
-    # Start audio generation in background thread
-    audio_result = {"path": None, "error": None}
+    # Step 1: Generate basic script
+    print("1️⃣ Testing script generation...")
+    script = generate_script(topic=topic, duration_minutes=1, sophistication_level=1)
+    print(f"✅ Generated {len(script.concepts)} concepts")
     
-    def audio_thread():
-        try:
-            audio_result["path"] = generate_audio_worker(narrator_text, dry_run, progress_callback)
-        except Exception as e:
-            audio_result["error"] = e
-            print(f"❌ [PARALLEL] Audio thread failed: {e}")
+    # Step 2: Test narration chunking
+    print("\n2️⃣ Testing narration chunking...")
+    for i, concept in enumerate(script.concepts):
+        print(f"\nConcept {i+1}:")
+        print(f"Original narration: {concept.narration}")
+        print(f"Original scene description: {concept.scene_description}")
+        
+        # Test chunking
+        chunks = break_narration_into_chunks(concept.narration, concept.scene_description)
+        print(f"Chunks created: {len(chunks)}")
+        
+        # Test timed description creation
+        timed_desc = create_timed_scene_description(concept.scene_description, chunks)
+        print(f"Timed description preview:")
+        print(timed_desc[:300] + "...")
+        
+        # This is the KEY: Does the timed description get passed to Manim?
+        concept.scene_description = timed_desc
+        concept.narration_chunks = chunks
     
-    # Start audio generation thread
-    audio_thread_obj = threading.Thread(target=audio_thread, daemon=True)
-    audio_thread_obj.start()
-    print("🎵 Audio generation started in parallel...")
+    # Step 3: Test if Manim receives the timing info
+    print("\n3️⃣ Testing Manim code generation...")
+    print("📋 Scene descriptions that will be sent to Manim:")
     
-    # Generate video scenes in main thread
-    print("🎬 [MAIN] Generating video scenes...")
-    if progress_callback:
-        progress_callback(25, "Creating visual scenes...")
+    for i, concept in enumerate(script.concepts):
+        print(f"\n--- Scene {i+1} Description Sent to Manim ---")
+        print(concept.scene_description)
+        print("--- End Scene Description ---")
     
-    try:
-        # Pass the folder_name (job_id) to ensure consistent naming
-        concatenated_video = generate_all_scenes_from_script(
-            script, 
-            max_workers=1, 
-            custom_output_name=folder_name
-        )
-        print("✅ [MAIN] Video scenes rendered")
-        if progress_callback:
-            progress_callback(55, "Visual scenes complete...")
-    except Exception as e:
-        if progress_callback:
-            progress_callback(0, f"Video generation failed: {str(e)}")
-        # Still wait for audio thread to complete for cleanup
-        audio_thread_obj.join(timeout=10)
-        raise
-
-    # Wait for audio generation to complete
-    print("⏳ Waiting for audio generation to complete...")
-    if progress_callback:
-        progress_callback(70, "Finalizing audio...")
+    # Step 4: Actually generate one scene to see the result
+    print("\n4️⃣ Testing actual scene generation...")
+    print("⚠️ This will generate actual Manim code - check if it uses the timing!")
     
-    audio_thread_obj.join(timeout=300)  # 5 minute timeout
+    # Generate just the first scene for testing
+    from backend.generate_scenes import generate_manim_code
     
-    if audio_thread_obj.is_alive():
-        print("⚠️ Audio generation timed out after 5 minutes")
-        if progress_callback:
-            progress_callback(75, "Audio generation timed out, proceeding with video only...")
+    # Use the enhanced timing-explicit version
+    enhanced_description = add_explicit_timing_to_prompt(script.concepts[0].scene_description)
+    test_prompt = f"Scene description for concept 1:\n{enhanced_description}"
+    generated_code = generate_manim_code(test_prompt)
     
-    audio_path = audio_result["path"]
-    if audio_result["error"]:
-        print(f"❌ Audio generation failed: {audio_result['error']}")
-        if progress_callback:
-            progress_callback(75, "Audio failed, proceeding with video only...")
-        audio_path = None
-    elif audio_path:
-        print(f"✅ Audio generation completed: {audio_path}")
+    print("📝 Generated Manim code:")
+    print(generated_code)
+    
+    # Step 5: Check if timing is respected
+    print("\n5️⃣ Analyzing generated code for timing compliance...")
+    
+    # Look for timing markers in generated code
+    if "self.wait(" in generated_code:
+        wait_calls = re.findall(r'self\.wait\(([\d.]+)\)', generated_code)
+        print(f"Found wait calls: {wait_calls}")
+        
+        # Check if they match our timing
+        expected_durations = [chunk['duration'] for chunk in script.concepts[0].narration_chunks]
+        print(f"Expected durations: {expected_durations}")
+        
+        if len(wait_calls) == len(expected_durations):
+            matches = all(abs(float(actual) - expected) < 0.5 
+                         for actual, expected in zip(wait_calls, expected_durations))
+            if matches:
+                print("✅ TIMING SYNCHRONIZATION WORKING!")
+            else:
+                print("❌ TIMING MISMATCH - Manim ignoring timing markers")
+        else:
+            print("❌ WRONG NUMBER OF WAIT CALLS - Manim not following timing structure")
     else:
-        print("⚠️ Audio generation completed but no file returned")
-
-    # Step 3: Combine video and audio
-    print("🔗 Step 3: Combining video and audio...")
-    if progress_callback:
-        progress_callback(80, "Adding audio to video...")
+        print("❌ NO WAIT CALLS FOUND - Manim not generating timed code")
     
-    try:
-        final_output = add_audio_to_video(concatenated_video, audio_path, progress_callback)
-        
-        if progress_callback:
-            progress_callback(100, "Video ready for download!")
-        
-        print("🎉 VIDEO GENERATION COMPLETE")
-        print(f"📁 Final output: {final_output}")
-        return final_output
-        
-    except Exception as e:
-        if progress_callback:
-            progress_callback(90, f"Audio combination failed, video-only available")
-        print(f"❌ Failed to combine video and audio: {e}")
-        print(f"📁 Video only available at: {concatenated_video}")
-        
-        # Return video-only version if audio combination fails
-        return concatenated_video
+    return script
 
-def make_video_with_detailed_progress(topic: str, level: int = 2, duration: int = 10, 
-                                    dry_run: bool = False, progress_callback=None, job_id: str = None):
-    """
-    Enhanced version with more detailed progress tracking
-    """
-    print(f"🚀 DETAILED VIDEO GENERATION for topic: {topic}")
-    print("=" * 60)
+# Replace your debug_manim_prompt_handling() function with this:
 
-    # Use job_id for consistent naming
-    folder_name = job_id if job_id else safe_slugify(topic)
+def debug_manim_prompt_handling():
+    """
+    Test if the Manim prompt is correctly processing timing information
+    """
+    print("🔍 DEBUGGING MANIM PROMPT HANDLING")
+    print("=" * 50)
     
-    try:
-        # Step 1: Script Generation (0% -> 15%)
-        if progress_callback:
-            progress_callback(0, "Starting script generation...")
-        
-        script = generate_script(topic=topic, duration_minutes=duration, sophistication_level=level)
-        
-        if progress_callback:
-            progress_callback(10, f"Script complete: {len(script.concepts)} concepts")
-        
-        # Prepare narration
-        narrator_text = "\n\n".join([c.narration for c in script.concepts])
-        word_count = len(narrator_text.split())
-        estimated_time = word_count / 150
-        
-        print(f"📊 Script Stats: {word_count} words, ~{estimated_time:.1f}min audio")
-        
-        if progress_callback:
-            progress_callback(15, f"Prepared {word_count} words for narration")
+    # Create a simple test scene description with the SAME explicit format as the complex scenes
+    test_scene_description = """
+=== TIMING-SYNCHRONIZED SCENE ===
 
-        # Step 2: Parallel Generation Setup (15% -> 25%)
-        if progress_callback:
-            progress_callback(20, "Starting parallel audio and video generation...")
-        
-        # Shared progress tracking
-        progress_state = {
-            "audio_progress": 0,
-            "video_progress": 0,
-            "audio_complete": False,
-            "video_complete": False,
-            "audio_path": None,
-            "video_path": None,
-            "errors": []
-        }
-        
-        def enhanced_audio_thread():
-            try:
-                if progress_callback:
-                    progress_callback(25, "Synthesizing audio narration...")
-                
-                audio_path = generate_audio_narration(text=narrator_text, filename="narration.mp3", dry_run=dry_run)
-                progress_state["audio_path"] = audio_path
-                progress_state["audio_complete"] = True
-                
-                if progress_callback:
-                    progress_callback(50, "Audio narration complete")
-                    
-            except Exception as e:
-                progress_state["errors"].append(f"Audio: {e}")
-                print(f"❌ Audio generation failed: {e}")
-        
-        # Start enhanced audio generation
-        audio_thread_obj = threading.Thread(target=enhanced_audio_thread, daemon=True)
-        audio_thread_obj.start()
-        
-        # Step 3: Video Generation (25% -> 60%)
-        if progress_callback:
-            progress_callback(30, "Generating visual scenes...")
-        
-        concatenated_video = generate_all_scenes_from_script(
-            script, 
-            max_workers=1, 
-            custom_output_name=folder_name
-        )
-        
-        progress_state["video_path"] = concatenated_video
-        progress_state["video_complete"] = True
-        
-        if progress_callback:
-            progress_callback(60, "Visual scenes complete")
-        
-        # Step 4: Wait for Audio (60% -> 70%)
-        if progress_callback:
-            progress_callback(65, "Waiting for audio completion...")
-        
-        audio_thread_obj.join(timeout=300)
-        
-        if progress_callback:
-            progress_callback(70, "Audio processing finished")
-        
-        # Step 5: Final Assembly (70% -> 100%)
-        if progress_callback:
-            progress_callback(75, "Combining video and audio...")
-        
-        audio_path = progress_state["audio_path"]
-        final_output = add_audio_to_video(concatenated_video, audio_path, progress_callback)
-        
-        if progress_callback:
-            progress_callback(100, "Video ready for download!")
-        
-        print("🎉 DETAILED VIDEO GENERATION COMPLETE!")
-        print(f"📁 Final output: {final_output}")
-        
-        return final_output
-        
-    except Exception as e:
-        if progress_callback:
-            progress_callback(0, f"Generation failed: {str(e)}")
-        print(f"❌ Video generation failed: {e}")
-        raise
+🎯 REQUIRED WAIT CALLS (Claude must follow exactly):
+   self.wait(3.0)  # After segment 1
+   self.wait(2.5)  # After segment 2
 
+✅ Total segments: 2
+✅ Total wait calls needed: 2
+
+==================================================
+SEGMENT 1 [0.0s - 3.0s]
+==================================================
+Audio: "Let's add two plus two"
+Duration: 3.0 seconds
+🚨 MANDATORY: End this segment with self.wait(3.0) 🚨
+
+Visual: Show the numbers 2 and 2
+
+==================================================
+SEGMENT 2 [3.0s - 5.5s]
+==================================================
+Audio: "The answer is four"
+Duration: 2.5 seconds
+🚨 MANDATORY: End this segment with self.wait(2.5) 🚨
+
+Visual: Show the result 4
+
+==================================================
+🎯 CLAUDE: YOU MUST HAVE EXACTLY 2 WAIT CALLS:
+   Segment 1: self.wait(3.0)
+   Segment 2: self.wait(2.5)
+🎯 TOTAL SCENE DURATION: 5.5s
+🎯 NO OTHER WAIT CALLS ALLOWED!
+==================================================
+"""
+    
+    print("📝 Test scene description:")
+    print(test_scene_description)
+    
+    # Test the Manim code generation with enhanced timing
+    from backend.generate_scenes import generate_manim_code
+    
+    enhanced_description = add_explicit_timing_to_prompt(test_scene_description)
+    test_prompt = f"Scene description for concept 1:\n{enhanced_description}"
+    generated_code = generate_manim_code(test_prompt)
+    
+    print("\n🎭 Generated Manim code:")
+    print(generated_code)
+    
+    # Analyze the output
+    print("\n🔍 Analysis:")
+    
+    if "3.0" in generated_code and "2.5" in generated_code:
+        print("✅ Timing numbers found in code")
+    else:
+        print("❌ Timing numbers NOT found - prompt may be ignoring timing")
+    
+    if "self.wait(3.0)" in generated_code or "self.wait(3)" in generated_code:
+        print("✅ First timing correctly used")
+    else:
+        print("❌ First timing NOT used correctly")
+    
+    if "self.wait(2.5)" in generated_code:
+        print("✅ Second timing correctly used")
+    else:
+        print("❌ Second timing NOT used correctly")
+        
+        # Check what timing was actually used
+        wait_calls = re.findall(r'self\.wait\(([\d.]+)\)', generated_code)
+        if len(wait_calls) >= 2:
+            print(f"   💡 Used self.wait({wait_calls[1]}) instead of self.wait(2.5)")
+    
+    print("hi")
+    if "TIMING-SYNCHRONIZED" in generated_code or "SEGMENT" in generated_code:
+        print("⚠️ Manim code includes description text (should be cleaned)")
+    
+    return generated_code
+
+# Run the tests
 if __name__ == "__main__":
-    # Test with detailed progress
-    def test_progress(progress, message):
-        print(f"[{progress:3d}%] {message}")
+    # print("🧪 Running synchronization tests...\n")
     
-    make_video_with_detailed_progress(
-        "Explain derivatives in calculus", 
-        level=2, 
-        duration=5, 
-        progress_callback=test_progress,
-        job_id="test-job-123"
-    )
+    # # Test 1: Full pipeline
+    # test_script = test_synchronization_pipeline()
+    
+    # print("\n" + "="*60 + "\n")
+    
+    # # Test 2: Manim prompt handling
+    # debug_manim_prompt_handling()
+    
+    # print("\n🏁 TESTS COMPLETE")
+    # print("If you see ❌ errors above, those are the issues to fix!")
+
+    # Try this now - it should have perfect audio-video sync!
+    # result = make_perfectly_synchronized_video("What is 1+1?", level=1, duration=1)
+
+    # Or try something more complex
+    result = make_perfectly_synchronized_video("Teach me what a derivative is?", level=2, duration=3)

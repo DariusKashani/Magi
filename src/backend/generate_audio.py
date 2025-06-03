@@ -28,10 +28,11 @@ except ImportError:
 # Setup
 # ---------------------------
 load_dotenv()
-OUTPUT_DIR = Path("output")
-OUTPUT_DIR.mkdir(exist_ok=True)
-AUDIO_DIR = OUTPUT_DIR / "audio"
-AUDIO_DIR.mkdir(exist_ok=True)
+# Use centralized path configuration
+from config.paths import AUDIO_OUTPUT_DIR
+OUTPUT_DIR = AUDIO_OUTPUT_DIR.parent
+AUDIO_DIR = AUDIO_OUTPUT_DIR
+print(f"✅ Using centralized audio directory: {AUDIO_DIR}")
 
 # FFmpeg path
 FFMPEG_PATH = shutil.which("ffmpeg")
