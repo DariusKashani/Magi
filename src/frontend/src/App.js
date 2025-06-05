@@ -4,12 +4,14 @@ import {
   Search, Home, BookOpen, HelpCircle, User, Settings, Bell,
   ChevronRight, Star, Award, TrendingUp, Users, Calendar,
   MessageCircle, Target, Zap, FileText, Video, Headphones,
-  ChevronDown, ArrowLeft, Brain, Calculator, BeakerIcon
+  ChevronDown, ArrowLeft, Brain, Calculator, BeakerIcon,
+  LogOut
 } from 'lucide-react';
 
-
-//firebase import 
+// Firebase imports
 import { app, analytics } from './firebase';
+import { observeAuthState, signOutUser, getUserData } from './auth';
+import AuthPage from './AuthPage';
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:8000';
@@ -990,6 +992,7 @@ Or paste any homework problem, math equation, physics question, etc."
 // Main App Component
 const KhanAcademyApp = () => {
   const [currentPage, setCurrentPage] = useState('home');
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
   const [searchQuery, setSearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -998,6 +1001,12 @@ const KhanAcademyApp = () => {
   const [error, setError] = useState('');
   const [showExploreDropdown, setShowExploreDropdown] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
+  
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     topic: '',
@@ -1015,6 +1024,27 @@ const KhanAcademyApp = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Set up authentication state observer
+  useEffect(() => {
+    const unsubscribe = observeAuthState(async (user) => {
+      setUser(user);
+      setIsAuthLoading(false);
+      
+      if (user) {
+        // User is signed in, fetch additional user data from Firestore
+        const result = await getUserData(user.uid);
+        if (result.success) {
+          setUserData(result.userData);
+        }
+      } else {
+        // User is signed out
+        setUserData(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const checkBackendHealth = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/health`);
@@ -1023,6 +1053,24 @@ const KhanAcademyApp = () => {
     } catch (error) {
       setBackendConnected(false);
       return false;
+    }
+  };
+
+  // Handle successful authentication
+  const handleAuthSuccess = (authenticatedUser) => {
+    setUser(authenticatedUser);
+    // The auth state observer will handle fetching user data
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    const result = await signOutUser();
+    if (result.success) {
+      setUser(null);
+      setUserData(null);
+      setCurrentPage('home');
+    } else {
+      console.error('Sign out error:', result.message);
     }
   };
 
@@ -1227,15 +1275,100 @@ const KhanAcademyApp = () => {
               </button>
             </div>
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-3">
-              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Log in
-              </button>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                Sign up
-              </button>
-            </div>
+            {/* User Authentication Area */}
+            {isAuthLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader className="w-4 h-4 animate-spin text-gray-400" />
+                <span className="text-sm text-gray-500">Loading...</span>
+              </div>
+            ) : user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  onBlur={() => setTimeout(() => setShowUserDropdown(false), 150)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {userData?.firstName?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {userData?.firstName || user.displayName || 'User'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </button>
+
+                {showUserDropdown && (
+                  <div className="absolute top-full right-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">
+                        {userData?.displayName || user.displayName}
+                      </p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                    
+                    {userData?.stats && (
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                          <div>
+                            <p className="text-lg font-semibold text-blue-600">
+                              {userData.stats.videosGenerated || 0}
+                            </p>
+                            <p className="text-xs text-gray-500">Videos Created</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold text-green-600">
+                              {userData.stats.problemsSolved || 0}
+                            </p>
+                            <p className="text-xs text-gray-500">Problems Solved</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="py-1">
+                      <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                        <User className="w-4 h-4" />
+                        <span>Profile Settings</span>
+                      </button>
+                      <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                        <Settings className="w-4 h-4" />
+                        <span>Preferences</span>
+                      </button>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setCurrentPage('auth');
+                  }}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Log in
+                </button>
+                <button
+                  onClick={() => {
+                    setAuthMode('signup');
+                    setCurrentPage('auth');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  Sign up
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1509,6 +1642,13 @@ const KhanAcademyApp = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
       case 'courses': return <CoursesPage />;
+      case 'auth': return (
+        <AuthPage
+          authMode={authMode}
+          setCurrentPage={setCurrentPage}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      );
       case 'generator': return (
         <VideoGeneratorPage 
           formData={formData}
