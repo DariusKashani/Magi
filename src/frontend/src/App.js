@@ -4,7 +4,7 @@ import {
   Search, Home, BookOpen, HelpCircle, User, Settings, Bell,
   ChevronRight, Star, Award, TrendingUp, Users, Calendar,
   MessageCircle, Target, Zap, FileText, Video, Headphones,
-  ChevronDown, ArrowLeft
+  ChevronDown, ArrowLeft, Brain, Calculator, BeakerIcon
 } from 'lucide-react';
 
 // API Configuration
@@ -665,6 +665,324 @@ const VideoGeneratorPage = ({
   );
 };
 
+// NEW: Problem Solving Page Component
+const ProblemSolvingPage = ({ 
+  backendConnected, 
+  setCurrentPage 
+}) => {
+  const [problemText, setProblemText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [generatedVideo, setGeneratedVideo] = useState(null);
+  const [error, setError] = useState('');
+  const [jobId, setJobId] = useState(null);
+
+  const startProblemSolving = async () => {
+    if (!problemText.trim()) {
+      setError("Please enter a problem to solve");
+      return;
+    }
+
+    if (!backendConnected) {
+      setError("Backend is not connected. Please make sure the API server is running.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setProgress(0);
+    setError('');
+    setGeneratedVideo(null);
+
+    try {
+      // Call the step-by-step API endpoint with default values
+      const response = await fetch(`${API_BASE_URL}/api/step-by-step`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          problem_text: problemText,
+          subject: 'math', // Default to math
+          problem_type: 'homework', // Default type
+          detail_level: 2, // Standard detail
+          video_duration: 3, // 3 minute default
+          show_work: true
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to start problem solving');
+      }
+
+      const result = await response.json();
+      const currentJobId = result.job_id;
+      setJobId(currentJobId);
+
+      // Poll for progress
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`${API_BASE_URL}/api/video-status/${currentJobId}`);
+          const status = await statusResponse.json();
+
+          if (status.progress !== undefined) {
+            setProgress(status.progress);
+          }
+
+          if (status.current_step) {
+            setCurrentStep(status.current_step);
+          }
+
+          if (status.status === 'completed') {
+            clearInterval(pollInterval);
+            setGeneratedVideo({
+              title: `Solution: ${problemText.substring(0, 50)}...`,
+              duration: `3:00`,
+              jobId: currentJobId,
+              downloadUrl: `${API_BASE_URL}/api/video/${currentJobId}`,
+              status: 'completed'
+            });
+            setCurrentStep("Problem solved! Video ready for download!");
+            setProgress(100);
+            setIsGenerating(false);
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            throw new Error(status.error || 'Problem solving failed');
+          }
+        } catch (pollError) {
+          clearInterval(pollInterval);
+          throw pollError;
+        }
+      }, 3000);
+
+      // Timeout after 15 minutes
+      setTimeout(() => {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          if (isGenerating) {
+            setError('Problem solving timed out. The video might still be processing.');
+            setIsGenerating(false);
+          }
+        }
+      }, 900000);
+
+    } catch (err) {
+      setError(err.message || "Failed to solve problem. Please try again.");
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (generatedVideo && generatedVideo.downloadUrl) {
+      const link = document.createElement('a');
+      link.href = generatedVideo.downloadUrl;
+      link.download = `magi_solution_${generatedVideo.jobId}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <button 
+        onClick={() => setCurrentPage('home')}
+        className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Home</span>
+      </button>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Problem Solver</h1>
+        <p className="text-gray-600">Get step-by-step video solutions to any problem</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Simple Problem Input Form */}
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Enter Your Problem</h2>
+           
+          <div className="space-y-4">
+            {/* Problem Text */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Paste your problem here
+              </label>
+              <textarea
+                value={problemText}
+                onChange={(e) => setProblemText(e.target.value)}
+                placeholder="What is the derivative of x^2?
+
+Or paste any homework problem, math equation, physics question, etc."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={8}
+                disabled={isGenerating}
+              />
+            </div>
+
+            <button 
+              onClick={startProblemSolving}
+              disabled={isGenerating || !problemText.trim() || !backendConnected}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-4 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2 text-lg"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span>Solving Problem...</span>
+                </>
+              ) : !backendConnected ? (
+                <>
+                  <span>Backend Disconnected</span>
+                </>
+              ) : (
+                <>
+                  <Brain className="w-5 h-5" />
+                  <span>Get Step-by-Step Solution</span>
+                </>
+              )}
+            </button>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Progress & Results */}
+        <div className="space-y-6">
+          {isGenerating && (
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Loader className="w-5 h-5 text-blue-600 animate-spin" />
+                <h3 className="text-lg font-semibold text-gray-900">Solving Your Problem</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">{currentStep}</span>
+                  <span className="text-blue-600 font-medium">{Math.round(progress)}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {generatedVideo && (
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div className="aspect-video bg-gray-900 relative group">
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  preload="metadata"
+                >
+                  <source src={generatedVideo.downloadUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={handleDownload}
+                    className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-all"
+                    title="Download Solution Video"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Problem Solved!
+                    </h3>
+                    
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{generatedVideo.duration}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600 font-medium">Solution Ready</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => {
+                      const video = document.querySelector('video');
+                      if (video) {
+                        video.currentTime = 0;
+                        video.play();
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>Watch Solution</span>
+                  </button>
+                  
+                  <button 
+                    onClick={handleDownload}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setGeneratedVideo(null);
+                      setProblemText('');
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Solve Another
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Simplified Help - only show when not generating and no video */}
+          {!isGenerating && !generatedVideo && (
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-3">How it works</h3>
+              <div className="space-y-2 text-sm text-blue-800">
+                <div className="flex items-start space-x-2">
+                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
+                  <span>Paste any homework problem, math equation, or question</span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
+                  <span>AI analyzes the problem and creates a step-by-step video solution</span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
+                  <span>Watch, download, or share your personalized solution</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component
 const KhanAcademyApp = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -893,12 +1211,12 @@ const KhanAcademyApp = () => {
               </button>
               <button
                 onClick={() => setCurrentPage('help')}
-                className={`px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
-                  currentPage === 'help' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  currentPage === 'help' ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                For Teachers
-                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full ml-1">FREE</span>
+                Problem Solver
+                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full ml-1">NEW</span>
               </button>
               <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                 Donate
@@ -941,20 +1259,23 @@ const KhanAcademyApp = () => {
             </h1>
             <p className="text-lg text-gray-600 mb-6">
               Magi moves the needle for educators and students. Powered by advanced AI,
-              Magi delivers personalized educational videos tailored to your teaching and learning experience!
+              Magi delivers personalized educational videos and step-by-step problem solutions
+              tailored to your teaching and learning experience!
             </p>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setCurrentPage('generator')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
               >
-                AI Video Generator
+                <Video className="w-5 h-5" />
+                <span>AI Video Generator</span>
               </button>
               <button
                 onClick={() => setCurrentPage('help')}
-                className="border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium px-6 py-3 rounded-lg transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
               >
-                For Learners
+                <Brain className="w-5 h-5" />
+                <span>Problem Solver</span>
               </button>
             </div>
           </div>
@@ -985,6 +1306,55 @@ const KhanAcademyApp = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Feature Cards */}
+      <div className="grid md:grid-cols-2 gap-6 mb-12">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Video className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Educational Videos</h3>
+              <p className="text-gray-600">Learn any topic with AI-generated videos</p>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Get personalized educational content on any topic. From basic concepts to advanced theories,
+            our AI creates custom videos with synchronized visuals and professional narration.
+          </p>
+          <button
+            onClick={() => setCurrentPage('generator')}
+            className="text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1"
+          >
+            <span>Try Video Generator</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <Calculator className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Problem Solver</h3>
+              <p className="text-gray-600">Step-by-step solutions to any problem</p>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Stuck on homework or need to understand a concept? Get detailed, step-by-step video solutions
+            that walk you through the problem from start to finish.
+          </p>
+          <button
+            onClick={() => setCurrentPage('help')}
+            className="text-green-600 hover:text-green-700 font-medium flex items-center space-x-1"
+          >
+            <span>Try Problem Solver</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -1083,134 +1453,6 @@ const KhanAcademyApp = () => {
     </div>
   );
 
-  const HelpPage = () => {
-    const [problemType, setProblemType] = useState('');
-    const [problemText, setProblemText] = useState('');
-    const [subject, setSubject] = useState('');
-
-    return (
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <BackButton />
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Get Help</h1>
-          <p className="text-gray-600">Solve specific problems with step-by-step guidance</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Problem Input */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Describe Your Problem</h2>
-           
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select a subject</option>
-                  <option value="math">Mathematics</option>
-                  <option value="physics">Physics</option>
-                  <option value="chemistry">Chemistry</option>
-                  <option value="biology">Biology</option>
-                  <option value="history">History</option>
-                  <option value="english">English</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Problem Type</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Homework', 'Concept', 'Practice', 'Test Prep'].map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setProblemType(type)}
-                      className={`p-2 text-sm rounded-lg border transition-colors ${
-                        problemType === type
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Problem</label>
-                <textarea
-                  value={problemText}
-                  onChange={(e) => setProblemText(e.target.value)}
-                  placeholder="Describe your problem in detail or paste the exact question..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows={4}
-                />
-              </div>
-
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2">
-                <Zap className="w-5 h-5" />
-                <span>Get Step-by-Step Solution</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Help Options */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Help</h3>
-              <div className="space-y-3">
-                <button className="w-full p-3 text-left rounded-lg border hover:bg-gray-50 flex items-center space-x-3">
-                  <MessageCircle className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <div className="font-medium">Chat with AI Tutor</div>
-                    <div className="text-sm text-gray-600">Real-time help and explanations</div>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => setCurrentPage('generator')}
-                  className="w-full p-3 text-left rounded-lg border hover:bg-gray-50 flex items-center space-x-3"
-                >
-                  <Video className="w-5 h-5 text-green-600" />
-                  <div>
-                    <div className="font-medium">Generate Tutorial Video</div>
-                    <div className="text-sm text-gray-600">Create a custom video explanation</div>
-                  </div>
-                </button>
-                <button className="w-full p-3 text-left rounded-lg border hover:bg-gray-50 flex items-center space-x-3">
-                  <FileText className="w-5 h-5 text-purple-600" />
-                  <div>
-                    <div className="font-medium">Practice Problems</div>
-                    <div className="text-sm text-gray-600">Similar problems to practice</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3">Pro Tips</h3>
-              <div className="space-y-2 text-sm text-blue-800">
-                <div className="flex items-start space-x-2">
-                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
-                  <span>Be specific about what you're stuck on</span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
-                  <span>Include any work you've already done</span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Target className="w-4 h-4 mt-0.5 text-blue-600" />
-                  <span>Ask for the reasoning, not just the answer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const SearchResults = () => {
     const filteredVideos = sampleVideos.filter(video =>
       video.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1281,7 +1523,12 @@ const KhanAcademyApp = () => {
           setCurrentPage={setCurrentPage}
         />
       );
-      case 'help': return <HelpPage />;
+      case 'help': return (
+        <ProblemSolvingPage 
+          backendConnected={backendConnected}
+          setCurrentPage={setCurrentPage}
+        />
+      );
       default: return <HomePage />;
     }
   };

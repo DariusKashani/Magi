@@ -1,0 +1,49 @@
+# Problem-Solving Script Generation Prompt
+
+```
+You are an expert mathematics tutor creating step-by-step problem-solving videos. Generate a structured solution script for the problem: {problem} at a {detail_level_desc} that would be about {duration_minutes} minutes long when read aloud (approximately {expected_words} words total).
+
+### Problem-Solving Rules:
+1. Divide the solution into exactly {step_count} solution steps of approximately {words_per_step} words each.
+2. Each step should represent one logical solution step (e.g., "subtract 5 from both sides").
+3. Mark the beginning of each step with [NEW STEP].
+4. End each step with [END STEP|| Scene description: ...] using the structure below.
+5. Mathematical expressions should be written in words (e.g., "x squared" instead of "x^2").
+6. Always show your work and explain the reasoning for each step.
+7. Include verification/checking at the end when appropriate.
+
+### Detail Levels:
+- **Basic (1)**: Show main steps only, minimal explanation
+- **Standard (2)**: Show all steps with brief explanations  
+- **Detailed (3)**: Show all steps with full reasoning and alternative approaches
+
+### Scene Description Format:
+Each scene should show the mathematical work being done:
+- Problem setup or current equation state
+- Highlight the operation being performed
+- Show the result after the operation
+- Duration estimate (e.g., [duration: 12s])
+
+Example for "Solve: 2x + 5 = 13":
+
+[NEW STEP]
+Let's start by writing down our equation clearly. We have two x plus five equals thirteen. Our goal is to isolate x on one side of the equation. We can do this by performing the same operation on both sides to maintain equality.
+
+[END STEP|| Scene description: 
+Static state 1: Show the equation "2x + 5 = 13" centered on screen [duration: 3s]
+Animation 1: Highlight the goal "Solve for x" appearing below the equation [duration: 2s]  
+Static state 2: Display "Strategy: Isolate x by undoing operations" [duration: 4s]
+]
+
+[NEW STEP]
+First, we need to get rid of the plus five on the left side. We can do this by subtracting five from both sides of the equation. Subtracting five from the left side gives us two x, and subtracting five from thirteen gives us eight.
+
+[END STEP|| Scene description:
+Static state 1: Show "2x + 5 = 13" [duration: 2s]
+Animation 1: Highlight "+5" and show "-5" being applied to both sides [duration: 4s]
+Animation 2: Show the simplification: "2x + 5 - 5 = 13 - 5" [duration: 3s]
+Animation 3: Simplify to "2x = 8" [duration: 3s]
+]
+
+Generate a complete solution with {step_count} steps, each approximately {words_per_step} words.
+```

@@ -26,7 +26,7 @@ AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Data files - these should now point to the correct data directory
 MANIM_KNOWLEDGE_PATH = DATA_DIR / "manim_knowledge.txt"
-MANIM_PROMPT_PATH = DATA_DIR / "prompts" / "manim_prompt_improved.txt"  # Updated path
+MANIM_PROMPT_PATH = DATA_DIR / "prompts" / "manim_code_prompt.txt"  # Updated path
 SCENE_EXAMPLES_PATH = DATA_DIR / "scene_examples.yaml"
 SCRIPT_GEN_PROMPT_PATH = DATA_DIR / "prompts" / "script_gen_prompt.txt"  # Updated path
 

@@ -1,0 +1,23 @@
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.18.0
+pydantic-core>=2.18.2
+python-multipart>=0.0.6
+
+# Video processing
+ffmpeg-python>=0.2.0
+
+# AI/ML libraries (if not already in your backend)
+openai>=1.0.0
+anthropic>=0.3.0
+
+# Audio processing (if using ElevenLabs)
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# Math visualization (if using Manim)
+manim>=0.17.0
+
+# Optional: for better development experience
+python-dotenv>=1.0.0
+rich>=13.7.0
