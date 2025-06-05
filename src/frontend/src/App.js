@@ -7,6 +7,10 @@ import {
   ChevronDown, ArrowLeft, Brain, Calculator, BeakerIcon
 } from 'lucide-react';
 
+
+//firebase import 
+import { app, analytics } from './firebase';
+
 // API Configuration
 const API_BASE_URL = 'http://localhost:8000';
 
